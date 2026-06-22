@@ -2,36 +2,19 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ドット絵 特徴抽出＆量産ジェネレーター</title>
+    <title>ドット絵 特徴抽出＆量産ジェネレーター（自動縮小版）</title>
     <style>
-        body { 
-            background: #2c2c2c; color: white; font-family: sans-serif; 
-            text-align: center; padding: 20px; 
-        }
-        .container {
-            background: #3a3a3a; padding: 20px; border-radius: 8px;
-            max-width: 800px; margin: 0 auto;
-        }
-        .canvas-area { 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-            gap: 20px; margin-top: 20px; 
-        }
+        body { background: #2c2c2c; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .container { background: #3a3a3a; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; }
+        .canvas-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
         canvas { 
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="%23ccc"/><rect x="8" y="8" width="8" height="8" fill="%23ccc"/><rect x="8" width="8" height="8" fill="%23fff"/><rect y="8" width="8" height="8" fill="%23fff"/></svg>'); /* 透過チェック柄 */
-            image-rendering: pixelated; /* ドットをくっきりさせる */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
-            border: 2px solid #555;
-            border-radius: 4px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="%23ccc"/><rect x="8" y="8" width="8" height="8" fill="%23ccc"/><rect x="8" width="8" height="8" fill="%23fff"/><rect y="8" width="8" height="8" fill="%23fff"/></svg>'); 
+            image-rendering: pixelated; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 4px;
         }
-        button, input[type="file"] { 
-            margin: 10px; padding: 10px 15px; font-size: 16px; 
-            cursor: pointer;
-        }
-        button { 
-            background: #4CAF50; color: white; border: none; 
-            border-radius: 4px; font-weight: bold;
-        }
+        button, input[type="file"] { margin: 10px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
+        button { background: #4CAF50; color: white; border: none; border-radius: 4px; font-weight: bold; }
         button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
         .hint { color: #aaa; font-size: 14px; text-align: left; margin-bottom: 15px;}
     </style>
 </head>
@@ -40,16 +23,13 @@
     <div class="container">
         <h2>ドット絵 特徴抽出ジェネレーター</h2>
         <div class="hint">
-            <strong>使い方:</strong><br>
-            1. 背景が透明なドット絵（32x32サイズなどを推奨）を選択します。<br>
-            2. プログラムが画像の「パレット」「Y座標ごとの色分布」「隣り合う色のルール」を自動抽出します。<br>
-            3. 「量産する」を押すと、抽出したルールを元にピクセルを再配置したキャラが生成されます。
+            <strong>改良版:</strong> 大きな画像をアップロードしても、自動的にドット絵サイズに縮小して解析します。
         </div>
 
-        <input type="file" id="imageUpload" accept="image/png">
+        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
         <button id="generateBtn" onclick="generate()" disabled>量産する</button>
 
-        <h3>元の画像（解析元）</h3>
+        <h3>元の画像（解析用サイズ）</h3>
         <canvas id="originalCanvas"></canvas>
 
         <h3>量産されたバリエーション</h3>
@@ -57,14 +37,12 @@
     </div>
 
 <script>
-    // 解析データを保存する変数
-    let silhouette = []; // 形（透明か不透明か）
-    let colorsByY = [];  // Y座標ごとの色の出現回数
-    let markov = {};     // ピクセルごとの隣接ルール（左から右への遷移）
+    let silhouette = []; 
+    let colorsByY = [];  
+    let markov = {};     
     let imgWidth = 0;
     let imgHeight = 0;
 
-    // ① 画像のアップロードと読み込み
     document.getElementById('imageUpload').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if(!file) return;
@@ -77,40 +55,43 @@
         reader.readAsDataURL(file);
     });
 
-    // RGBAをカラーコード(#RRGGBB)に変換。透明な場合はnullを返す。
     function rgbaToHex(r, g, b, a) {
-        if (a < 128) return null; // 半透明は無視して透明扱いにする
+        if (a < 128) return null; 
         return "#" + (16777216 + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
-    // ② 画像の特徴を抽出する（ここがソフトの心臓部）
     function analyzeImage(img) {
         const canvas = document.getElementById('originalCanvas');
         const ctx = canvas.getContext('2d');
         
-        imgWidth = img.width;
-        imgHeight = img.height;
-        
-        // 巨大な画像を弾く
-        if(imgWidth > 128 || imgHeight > 128) {
-            alert("画像が大きすぎます。128x128以下のドット絵を使用してください。");
-            return;
+        // ★改良ポイント：画像が大きい場合は最大64pxに自動縮小する
+        const MAX_SIZE = 64;
+        let scale = 1;
+        if (img.width > MAX_SIZE || img.height > MAX_SIZE) {
+            scale = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height);
         }
+        
+        imgWidth = Math.max(1, Math.floor(img.width * scale));
+        imgHeight = Math.max(1, Math.floor(img.height * scale));
         
         canvas.width = imgWidth;
         canvas.height = imgHeight;
-        canvas.style.width = (imgWidth * 4) + "px"; // 画面上では4倍に拡大して表示
-        canvas.style.height = (imgHeight * 4) + "px";
-        ctx.drawImage(img, 0, 0);
+        
+        // 画面上では見やすいように拡大表示（元のサイズ感に合わせる）
+        let displayScale = MAX_SIZE / Math.max(imgWidth, imgHeight) * 4;
+        canvas.style.width = (imgWidth * displayScale) + "px"; 
+        canvas.style.height = (imgHeight * displayScale) + "px";
+        
+        // 縮小時にドット感がぼやけないように設定
+        ctx.imageSmoothingEnabled = false; 
+        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
         
         const data = ctx.getImageData(0, 0, imgWidth, imgHeight).data;
         
-        // データの初期化
         silhouette = [];
         colorsByY = [];
         markov = {};
 
-        // 全ピクセルをスキャンしてルールを抽出
         for(let y = 0; y < imgHeight; y++) {
             silhouette[y] = [];
             colorsByY[y] = {};
@@ -118,14 +99,11 @@
                 const idx = (y * imgWidth + x) * 4;
                 const color = rgbaToHex(data[idx], data[idx+1], data[idx+2], data[idx+3]);
                 
-                // シルエット（型）を記録
                 silhouette[y][x] = color ? 1 : 0;
                 
                 if(color) {
-                    // 高さごとのパレットを記録
                     colorsByY[y][color] = (colorsByY[y][color] || 0) + 1;
                     
-                    // 配置情報（左のピクセルからの遷移）を記録
                     if (x > 0 && silhouette[y][x-1] === 1) {
                         const prevIdx = (y * imgWidth + (x-1)) * 4;
                         const prevColor = rgbaToHex(data[prevIdx], data[prevIdx+1], data[prevIdx+2], data[prevIdx+3]);
@@ -142,31 +120,28 @@
         alert("特徴の抽出が完了しました！「量産する」ボタンを押してください。");
     }
 
-    // ③ 抽出したルールを元に画像を自動生成する
     function generate() {
         const outputDiv = document.getElementById('output');
-        outputDiv.innerHTML = ""; // 前の画像をクリア
+        outputDiv.innerHTML = ""; 
         
-        // 8体量産する
+        const canvas = document.getElementById('originalCanvas');
+        
         for(let i = 0; i < 8; i++) {
             const newCanvas = document.createElement('canvas');
             newCanvas.width = imgWidth;
             newCanvas.height = imgHeight;
-            newCanvas.style.width = (imgWidth * 4) + "px";
-            newCanvas.style.height = (imgHeight * 4) + "px";
+            newCanvas.style.width = canvas.style.width;
+            newCanvas.style.height = canvas.style.height;
             const ctx = newCanvas.getContext('2d');
             
             let generatedColors = [];
             
-            // 左上から順番にピクセルを塗っていく
             for(let y = 0; y < imgHeight; y++) {
                 generatedColors[y] = [];
                 for(let x = 0; x < imgWidth; x++) {
                     if(silhouette[y][x] === 1) {
-                        // ルールに従って色を選ぶ
                         let chosenColor = chooseColor(x, y, generatedColors);
                         generatedColors[y][x] = chosenColor;
-                        
                         ctx.fillStyle = chosenColor;
                         ctx.fillRect(x, y, 1, 1);
                     } else {
@@ -178,35 +153,25 @@
         }
     }
 
-    // ④ ルーレット方式で色を決定するロジック
     function chooseColor(x, y, generatedColors) {
         let candidates = {};
+        for(let c in colorsByY[y]) candidates[c] = colorsByY[y][c]; 
         
-        // ベース確率: そのY座標で使われていた色
-        for(let c in colorsByY[y]) {
-            candidates[c] = colorsByY[y][c]; 
-        }
-        
-        // マルコフ連鎖: 左のピクセルからの「つながりやすさ」を加味する
         if (x > 0 && generatedColors[y][x-1]) {
             let leftColor = generatedColors[y][x-1];
             if (markov[leftColor]) {
                 for(let c in candidates) {
-                    // 左の色から遷移した実績がある色は確率を跳ね上げる
                     if(markov[leftColor][c]) {
                         candidates[c] *= (markov[leftColor][c] * 10); 
                     } else {
-                        // 遷移実績がない色は確率を下げる（ノイズとして少し残す）
                         candidates[c] *= 0.1; 
                     }
                 }
             }
         }
         
-        // 重み付きルーレットで色を抽選
         let totalWeight = 0;
         for(let c in candidates) totalWeight += candidates[c];
-        
         if(totalWeight === 0) return Object.keys(colorsByY[y])[0] || "#000000";
         
         let rand = Math.random() * totalWeight;
