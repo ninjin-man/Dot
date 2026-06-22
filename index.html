@@ -2,191 +2,315 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ドット絵 特徴抽出ジェネレーター（背景自動カット版）</title>
+    <title>シレン風ドット絵 パーツ合成ジェネレーター</title>
     <style>
         body { background: #2c2c2c; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .container { background: #3a3a3a; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; }
-        .canvas-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
         canvas { 
-            background: #444; /* 背景が切り抜かれたか分かりやすいように暗いグレーに設定 */
-            image-rendering: pixelated; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 4px;
+            background: #e0d8c0; /* 和風の和紙っぽい背景色 */
+            image-rendering: pixelated; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
+            border: 2px solid #555; 
+            border-radius: 4px;
+            margin: 10px;
         }
-        button, input[type="file"] { margin: 10px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
-        button { background: #4CAF50; color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .canvas-container { display: flex; flex-wrap: wrap; justify-content: center; max-width: 800px; margin: 0 auto; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 20px;}
         button:hover { background: #45a049; }
-        button:disabled { background: #666; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>ドット絵 特徴抽出ジェネレーター</h2>
-        <p>改良版: 左上のピクセル色を「背景」として自動カットします。</p>
+    <h2>風来のシレン風 パーツ合成ツール</h2>
+    <p>文字配列で作られた「素体」「服」「頭」「武器」「盾」のパーツを重ね合わせています。</p>
+    <button onclick="generateAll()">仲間を量産する</button>
 
-        <input type="file" id="imageUpload" accept="image/png, image/jpeg">
-        <button id="generateBtn" onclick="generate()" disabled>量産する</button>
-
-        <h3>元の画像（解析用サイズ）</h3>
-        <canvas id="originalCanvas"></canvas>
-
-        <h3>量産されたバリエーション（シルエット維持）</h3>
-        <div class="canvas-area" id="output"></div>
-    </div>
+    <div class="canvas-container" id="output"></div>
 
 <script>
-    let silhouette = []; 
-    let colorsByY = [];  
-    let markov = {};     
-    let imgWidth = 0;
-    let imgHeight = 0;
+    // ① カラーパレットの定義（記号と色の対応表）
+    const P = {
+        '.': null,        // 透明
+        'X': '#111111',   // 主線（黒）
+        'S': '#f4c4a0',   // 肌色
+        'E': '#000000',   // 目
+        'W': '#ffffff',   // 白
+        'R': '#d63031',   // 赤（帯やスカーフ）
+        'B': '#0984e3',   // 青（道着）
+        'L': '#74b9ff',   // 水色（道着の縞模様）
+        'G': '#00b894',   // 緑（別の道着色）
+        'H': '#e1b12c',   // 笠（かさ）の竹の色
+        'D': '#8A5A2B',   // 濃い茶色（靴など）
+        'I': '#dfe6e9',   // 鉄（刀や盾）
+        'M': '#636e72',   // 鉄の影
+        'W': '#cd853f'    // 木（杖）
+    };
 
-    document.getElementById('imageUpload').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const img = new Image();
-            img.onload = function() { analyzeImage(img); }
-            img.src = event.target.result;
+    // ② パーツごとのドット絵データ（16x16ピクセル）
+    // 文字を変えるだけで、あなた自身でドット絵を編集できます。
+
+    const bodies = [
+        [ // [素体] 基本の立ち姿
+            "................",
+            "................",
+            "......XXXX......",
+            ".....XSSSSX.....",
+            ".....XSESEX.....",
+            ".....XSSSSX.....",
+            "......XXXX......",
+            ".......XX.......",
+            "......XXXX......",
+            ".....XXXXXX.....",
+            ".....XXXXXX.....",
+            ".....X....X.....",
+            "....XSX..XSX....",
+            "....XXX..XXX....",
+            "....XDX..XDX....",
+            "....XXX..XXX...."
+        ]
+    ];
+
+    const clothes = [
+        [ // [服A] シレン風の縞模様の道着
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "......XXXX......",
+            ".....XRRRRX.....",
+            "....XBLBLBX.....",
+            "...XLBLBLBLX....",
+            "...XBLBLBLBX....",
+            "...XXXXXXXXX....",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [服B] 緑色の旅装束
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "......XXXX......",
+            ".....XRRRRX.....",
+            "....XGGGGGGX....",
+            "...XGGGGGGGGX...",
+            "...XGGGGGGGGX...",
+            "...XXXXXXXXXX...",
+            "................",
+            "................",
+            "................",
+            "................"
+        ]
+    ];
+
+    const heads = [
+        [ // [頭A] 三度笠（シレン風の大きな帽子）
+            "................",
+            "......XXXX......",
+            "....XXHHHHXX....",
+            "...XHHHHHHHHX...",
+            "..XHHHHHHHHHHX..",
+            "..XXXXXXXXXXXX..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [頭B] ハチマキ
+            "................",
+            "................",
+            "......XXXX......",
+            ".....XWWWWX.....",
+            "....XXWWWWXX....",
+            "....X.XXXX.X....",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [頭C] なし（素体の頭そのまま）
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ]
+    ];
+
+    const rightHands = [
+        [ // [右手A] 刀
+            "........XXX.....",
+            ".......XIIX.....",
+            ".......XIIX.....",
+            ".......XIIX.....",
+            ".......XIIX.....",
+            ".......XIIX.....",
+            "......XXXXXX....",
+            ".......XDDX.....",
+            ".......XXXX.....",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [右手B] 木の杖
+            "........XX......",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XWWX.....",
+            ".......XXXX.....",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [右手C] 手ぶら
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ]
+    ];
+
+    const leftHands = [
+        [ // [左手A] 丸盾
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "...........XXXX.",
+            "..........XBBBBX",
+            ".........XBBWBBX",
+            ".........XBBBBX.",
+            "..........XXXX..",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ],
+        [ // [左手B] なし
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ]
+    ];
+
+    // ③ 文字配列をCanvasに描画する関数
+    function drawPart(ctx, partArray) {
+        const pixelSize = 8; // 1ドットを8ピクセルとして描画（16x8=128px）
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const char = partArray[y][x];
+                const color = P[char];
+                if (color) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                }
+            }
         }
-        reader.readAsDataURL(file);
-    });
-
-    // RGBからHexカラーコードへの変換
-    function rgbToHex(r, g, b) {
-        return "#" + (16777216 + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
-    // 色の距離（似ている色か）を計算
-    function colorDistance(r1, g1, b1, r2, g2, b2) {
-        return Math.sqrt(Math.pow(r1-r2, 2) + Math.pow(g1-g2, 2) + Math.pow(b1-b2, 2));
-    }
-
-    function analyzeImage(img) {
-        const canvas = document.getElementById('originalCanvas');
+    // ④ キャラクターを1体生成する関数
+    function createCharacter(container) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128; // 16 * 8
+        canvas.height = 128;
         const ctx = canvas.getContext('2d');
-        
-        const MAX_SIZE = 64;
-        let scale = 1;
-        if (img.width > MAX_SIZE || img.height > MAX_SIZE) {
-            scale = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height);
-        }
-        
-        imgWidth = Math.max(1, Math.floor(img.width * scale));
-        imgHeight = Math.max(1, Math.floor(img.height * scale));
-        
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        
-        let displayScale = MAX_SIZE / Math.max(imgWidth, imgHeight) * 4;
-        canvas.style.width = (imgWidth * displayScale) + "px"; 
-        canvas.style.height = (imgHeight * displayScale) + "px";
-        
-        ctx.imageSmoothingEnabled = false; 
-        ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
-        
-        const data = ctx.getImageData(0, 0, imgWidth, imgHeight).data;
-        
-        // ★改良：左上(0,0)のピクセルを「背景色」として取得
-        const bgR = data[0], bgG = data[1], bgB = data[2];
-        const BG_TOLERANCE = 30; // 背景色とみなす許容範囲
-        
-        silhouette = [];
-        colorsByY = [];
-        markov = {};
 
-        for(let y = 0; y < imgHeight; y++) {
-            silhouette[y] = [];
-            colorsByY[y] = {};
-            for(let x = 0; x < imgWidth; x++) {
-                const idx = (y * imgWidth + x) * 4;
-                const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
-                
-                // 背景色に近い、または透明な場合はスキップ
-                let isBg = colorDistance(r, g, b, bgR, bgG, bgB) < BG_TOLERANCE || a < 128;
-                
-                if(isBg) {
-                    silhouette[y][x] = 0;
-                } else {
-                    silhouette[y][x] = 1;
-                    const color = rgbToHex(r, g, b);
-                    
-                    colorsByY[y][color] = (colorsByY[y][color] || 0) + 1;
-                    
-                    if (x > 0 && silhouette[y][x-1] === 1) {
-                        const prevIdx = (y * imgWidth + (x-1)) * 4;
-                        const prevColor = rgbToHex(data[prevIdx], data[prevIdx+1], data[prevIdx+2]);
-                        if(!markov[prevColor]) markov[prevColor] = {};
-                        markov[prevColor][color] = (markov[prevColor][color] || 0) + 1;
-                    }
-                }
-            }
-        }
-        
-        document.getElementById('generateBtn').disabled = false;
-        alert("特徴の抽出が完了しました！");
+        // ガチャ（ランダムにパーツを選ぶ）
+        const body = bodies[0];
+        const cloth = clothes[Math.floor(Math.random() * clothes.length)];
+        const head = heads[Math.floor(Math.random() * heads.length)];
+        const rightHand = rightHands[Math.floor(Math.random() * rightHands.length)];
+        const leftHand = leftHands[Math.floor(Math.random() * leftHands.length)];
+
+        // 下から順番に重ねて描画する（これがスプライト合成の極意です）
+        drawPart(ctx, body);
+        drawPart(ctx, cloth);
+        drawPart(ctx, head);
+        drawPart(ctx, rightHand);
+        drawPart(ctx, leftHand);
+
+        container.appendChild(canvas);
     }
 
-    function generate() {
-        const outputDiv = document.getElementById('output');
-        outputDiv.innerHTML = ""; 
-        const canvas = document.getElementById('originalCanvas');
-        
-        for(let i = 0; i < 8; i++) {
-            const newCanvas = document.createElement('canvas');
-            newCanvas.width = imgWidth;
-            newCanvas.height = imgHeight;
-            newCanvas.style.width = canvas.style.width;
-            newCanvas.style.height = canvas.style.height;
-            const ctx = newCanvas.getContext('2d');
-            
-            let generatedColors = [];
-            
-            for(let y = 0; y < imgHeight; y++) {
-                generatedColors[y] = [];
-                for(let x = 0; x < imgWidth; x++) {
-                    if(silhouette[y][x] === 1) {
-                        let chosenColor = chooseColor(x, y, generatedColors);
-                        generatedColors[y][x] = chosenColor;
-                        ctx.fillStyle = chosenColor;
-                        ctx.fillRect(x, y, 1, 1);
-                    } else {
-                        generatedColors[y][x] = null;
-                    }
-                }
-            }
-            outputDiv.appendChild(newCanvas);
+    // 10体まとめて量産する
+    function generateAll() {
+        const container = document.getElementById('output');
+        container.innerHTML = ""; // 一旦クリア
+        for(let i=0; i<10; i++) {
+            createCharacter(container);
         }
     }
 
-    function chooseColor(x, y, generatedColors) {
-        let candidates = {};
-        for(let c in colorsByY[y]) candidates[c] = colorsByY[y][c]; 
-        
-        if (x > 0 && generatedColors[y][x-1]) {
-            let leftColor = generatedColors[y][x-1];
-            if (markov[leftColor]) {
-                for(let c in candidates) {
-                    if(markov[leftColor][c]) {
-                        candidates[c] *= (markov[leftColor][c] * 10); 
-                    } else {
-                        candidates[c] *= 0.1; 
-                    }
-                }
-            }
-        }
-        
-        let totalWeight = 0;
-        for(let c in candidates) totalWeight += candidates[c];
-        if(totalWeight === 0) return Object.keys(colorsByY[y])[0] || "#000000";
-        
-        let rand = Math.random() * totalWeight;
-        for(let c in candidates) {
-            rand -= candidates[c];
-            if(rand <= 0) return c;
-        }
-        return Object.keys(candidates)[0];
-    }
+    // 最初から表示しておく
+    generateAll();
 </script>
 </body>
 </html>
