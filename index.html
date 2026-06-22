@@ -1,121 +1,159 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sprite Studio</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Sprite Studio v3 - Offline</title>
+
 <style>
-body{font-family:sans-serif;padding:12px}
-canvas{max-width:100%;border:1px solid #ccc;margin-top:10px}
-label{display:block;margin:8px 0}
-button{margin:4px;padding:8px 12px}
+body { font-family: sans-serif; margin:0; background:#111; color:#eee; }
+header { padding:10px; background:#222; }
+#app { padding:10px; }
+
+.drop {
+  border:2px dashed #555;
+  padding:20px;
+  text-align:center;
+  margin-bottom:10px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,80px);
+  gap:6px;
+}
+
+.thumb {
+  width:80px;
+  height:80px;
+  object-fit:contain;
+  background:#000;
+  border:1px solid #333;
+}
+
+button {
+  margin:4px;
+  padding:6px 10px;
+}
+
+canvas { display:none; }
 </style>
 </head>
+
 <body>
-<h2>Sprite Studio</h2>
 
-<label>
-処理モード:
-<select id="mode">
-<option value="transparent">透過処理</option>
-<option value="sheet">スプライトシート生成</option>
-<option value="both">透過→スプライトシート生成</option>
-</select>
-</label>
+<header>
+Sprite Studio v3 (Offline Single File)
+</header>
 
-<input type="file" id="files" multiple accept="image/*">
-<br>
-<button id="run">実行</button>
-<button id="openBtn" disabled>結果画像を開く</button>
+<div id="app">
 
-<p id="msg"></p>
+<div class="drop" id="drop">
+画像をドラッグ or クリック
+<input type="file" id="file" multiple accept="image/*" style="display:none">
+</div>
+
+<div>
+<button onclick="makeSheet()">スプライト生成</button>
+<button onclick="downloadPNG()">PNG出力</button>
+<button onclick="downloadJSON()">JSON出力</button>
+</div>
+
+<div class="grid" id="preview"></div>
+
 <canvas id="canvas"></canvas>
 
+</div>
+
 <script>
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-let resultUrl=null;
+let images = [];
 
-function loadImage(file){
- return new Promise(res=>{
-   const img=new Image();
-   img.onload=()=>res(img);
-   img.src=URL.createObjectURL(file);
- });
-}
+const fileInput = document.getElementById('file');
+const drop = document.getElementById('drop');
+const preview = document.getElementById('preview');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-async function makeTransparent(img){
- const c=document.createElement('canvas');
- c.width=img.width;
- c.height=img.height;
- const x=c.getContext('2d');
- x.drawImage(img,0,0);
+drop.onclick = () => fileInput.click();
 
- const d=x.getImageData(0,0,c.width,c.height);
+fileInput.onchange = e => loadFiles(e.target.files);
 
- const r=d.data[0];
- const g=d.data[1];
- const b=d.data[2];
-
- for(let i=0;i<d.data.length;i+=4){
-   if(d.data[i]===r && d.data[i+1]===g && d.data[i+2]===b){
-      d.data[i+3]=0;
-   }
- }
-
- x.putImageData(d,0,0);
-
- return await new Promise(resolve=>{
-   const out=new Image();
-   c.toBlob(blob=>{
-      out.onload=()=>resolve(out);
-      out.src=URL.createObjectURL(blob);
-   },"image/png");
- });
-}
-
-document.getElementById('run').onclick=async()=>{
- const files=[...document.getElementById('files').files];
- if(!files.length)return;
-
- const mode=document.getElementById('mode').value;
-
- let imgs=await Promise.all(files.map(loadImage));
-
- if(mode==="transparent" || mode==="both"){
-   imgs=await Promise.all(imgs.map(makeTransparent));
- }
-
- if(mode==="transparent"){
-   canvas.width=imgs[0].width;
-   canvas.height=imgs[0].height;
-   ctx.clearRect(0,0,canvas.width,canvas.height);
-   ctx.drawImage(imgs[0],0,0);
- }
- else{
-   const w=imgs[0].width;
-   const h=imgs[0].height;
-
-   canvas.width=w*imgs.length;
-   canvas.height=h;
-
-   ctx.clearRect(0,0,canvas.width,canvas.height);
-
-   imgs.forEach((img,i)=>{
-      ctx.drawImage(img,i*w,0);
-   });
- }
-
- canvas.toBlob(blob=>{
-   resultUrl=URL.createObjectURL(blob);
-   document.getElementById('openBtn').disabled=false;
-   document.getElementById('msg').textContent="結果生成完了";
- },"image/png");
+// DnD
+drop.ondragover = e => { e.preventDefault(); };
+drop.ondrop = e => {
+  e.preventDefault();
+  loadFiles(e.dataTransfer.files);
 };
 
-document.getElementById('openBtn').onclick=()=>{
- if(resultUrl) window.open(resultUrl,"_blank");
-};
+function loadFiles(files){
+  for (let f of files){
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      images.push(img);
+      renderThumb(img);
+    };
+    img.src = url;
+  }
+}
+
+function renderThumb(img){
+  const el = document.createElement('img');
+  el.className = 'thumb';
+  el.src = img.src;
+  preview.appendChild(el);
+}
+
+function makeSheet(){
+  if(images.length === 0) return;
+
+  const size = 32;
+  const cols = Math.ceil(Math.sqrt(images.length));
+  const rows = Math.ceil(images.length / cols);
+
+  canvas.width = cols * size;
+  canvas.height = rows * size;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  images.forEach((img, i) => {
+    const x = (i % cols) * size;
+    const y = Math.floor(i / cols) * size;
+
+    ctx.drawImage(img, x, y, size, size);
+  });
+
+  alert("Sprite sheet生成完了");
+}
+
+function downloadPNG(){
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'spritesheet.png';
+    a.click();
+  });
+}
+
+function downloadJSON(){
+  const size = 32;
+  const cols = Math.ceil(Math.sqrt(images.length));
+  const rows = Math.ceil(images.length / cols);
+
+  const data = {
+    frameWidth: size,
+    frameHeight: size,
+    columns: cols,
+    rows: rows
+  };
+
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spritesheet.json';
+  a.click();
+}
 </script>
+
 </body>
 </html>
