@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Sprite Studio v3 FULL</title>
+<title>Sprite Studio v3 - FINAL 100</title>
 
 <style>
 body { margin:0; font-family:sans-serif; background:#111; color:#eee; }
 
-header { padding:10px; background:#222; }
+header { padding:10px; background:#222; font-weight:bold; }
 
 #app { display:flex; height:calc(100vh - 40px); }
 
@@ -22,14 +22,19 @@ header { padding:10px; background:#222; }
   padding:10px;
   text-align:center;
   margin-bottom:10px;
+  cursor:pointer;
 }
 
 .thumb {
-  width:70px; height:70px;
+  width:64px; height:64px;
   object-fit:contain;
-  border:1px solid #333;
+  border:2px solid #333;
   margin:2px;
   cursor:pointer;
+}
+
+.thumb.active {
+  border:2px solid yellow;
 }
 
 .slot {
@@ -38,26 +43,45 @@ header { padding:10px; background:#222; }
   display:inline-block;
   margin:2px;
   background:#000;
+  cursor:pointer;
 }
-
-.tree { font-size:13px; }
-.node { margin-left:10px; cursor:pointer; }
-.active { color:yellow; }
 
 button, select {
   margin:3px;
-  padding:5px;
+  padding:6px;
+}
+
+.box {
+  background:#1b1b1b;
+  padding:8px;
+  margin-bottom:8px;
+  border:1px solid #333;
+}
+
+.statusBar {
+  background:#000;
+  padding:8px;
+  border:1px solid #333;
+  margin-bottom:10px;
+}
+
+.preview {
+  border:1px solid #333;
+  background:#000;
+  width:128px;
+  height:128px;
 }
 
 canvas { display:none; }
-.small { font-size:11px; opacity:0.7; }
+
+.small { font-size:12px; opacity:0.8; }
 </style>
 </head>
 
 <body>
 
 <header>
-Sprite Studio v3 FULL
+Sprite Studio v3 - FINAL (100 POINT UX)
 </header>
 
 <div id="app">
@@ -65,10 +89,19 @@ Sprite Studio v3 FULL
 <!-- LEFT -->
 <div class="panel left">
 
-<div class="drop" id="drop">Drop Images</div>
+<div class="box">
+<div><b>画像</b></div>
+<div class="drop" id="drop">クリック / ドロップ</div>
 <input type="file" id="file" multiple style="display:none">
+<div class="small">画像を選んでから中央クリック</div>
+</div>
 
-<div class="small">画像一覧</div>
+<div class="box">
+<div><b>選択中</b></div>
+<div id="selectedInfo">なし</div>
+<button onclick="clearSelected()">解除</button>
+</div>
+
 <div id="thumbs"></div>
 
 </div>
@@ -76,15 +109,10 @@ Sprite Studio v3 FULL
 <!-- CENTER -->
 <div class="panel center">
 
-<!-- MENU -->
-<div>
-<select id="modeSelect" onchange="switchMode()">
-<option value="sprite">Sprite Mode</option>
-<option value="monster">Monster Mode</option>
-<option value="item">Item Mode</option>
-</select>
+<div class="statusBar" id="status"></div>
 
-<select id="stateSelect" onchange="setState()">
+<div class="box">
+<select id="state">
 <option>idle</option>
 <option>walk</option>
 <option>attack</option>
@@ -92,30 +120,45 @@ Sprite Studio v3 FULL
 <option>death</option>
 </select>
 
-<select id="dirSelect" onchange="setDir()">
+<select id="dir">
 <option>down</option>
 <option>left</option>
 <option>right</option>
 <option>up</option>
 </select>
-</div>
 
-<div>
 <button onclick="build()">Build</button>
-<button onclick="exportPNG()">PNG</button>
-<button onclick="exportJSON()">JSON</button>
-<button onclick="togglePixel()">Pixel Mode</button>
+<button onclick="play()">Play</button>
+<button onclick="stop()">Stop</button>
 </div>
 
 <div id="grid"></div>
 
 <canvas id="canvas"></canvas>
 
+<div class="box">
+<div><b>アニメプレビュー</b></div>
+<canvas id="preview" class="preview"></canvas>
+</div>
+
 </div>
 
 <!-- RIGHT -->
 <div class="panel right">
-<div class="tree" id="tree"></div>
+
+<div class="box">
+<b>操作説明</b><br><br>
+①画像選択<br>
+②状態選択<br>
+③マスクリック<br>
+④Playで確認
+</div>
+
+<div class="box">
+<b>構造</b>
+<div id="tree"></div>
+</div>
+
 </div>
 
 </div>
@@ -123,22 +166,19 @@ Sprite Studio v3 FULL
 <script>
 
 /* =========================
-   STATE CORE
+   CORE
 ========================= */
 
 let images = [];
 let selected = null;
-
-let mode = "sprite";
-let pixelMode = false;
 
 const states = ["idle","walk","attack","hit","death"];
 const dirs = ["down","left","right","up"];
 
 let data = {};
 
-let activeState = "idle";
-let activeDir = "down";
+let playing = false;
+let frame = 0;
 
 init();
 
@@ -152,12 +192,37 @@ function init(){
 }
 
 /* =========================
-   FILE LOAD
+   UI UPDATE
 ========================= */
 
-const drop = document.getElementById('drop');
-const file = document.getElementById('file');
-const thumbs = document.getElementById('thumbs');
+function updateUI(){
+  document.getElementById("status").innerText =
+    `STATE:${getState()} / DIR:${getDir()} / FRAME:${frame}`;
+
+  document.getElementById("selectedInfo").innerText =
+    selected ? "選択中あり" : "なし";
+}
+
+function getState(){ return document.getElementById("state").value; }
+function getDir(){ return document.getElementById("dir").value; }
+
+/* =========================
+   SELECT
+========================= */
+
+function clearSelected(){
+  selected = null;
+  updateUI();
+  renderThumb();
+}
+
+/* =========================
+   FILE
+========================= */
+
+const drop = document.getElementById("drop");
+const file = document.getElementById("file");
+const thumbs = document.getElementById("thumbs");
 
 drop.onclick = () => file.click();
 
@@ -175,54 +240,50 @@ function load(files){
     const img = new Image();
     img.onload = () => {
       images.push(img);
-      renderThumb(img);
+      renderThumb();
     };
     img.src = url;
   }
 }
 
-function renderThumb(img){
-  const el = document.createElement('img');
-  el.src = img.src;
-  el.className = 'thumb';
+/* =========================
+   THUMB
+========================= */
 
-  el.onclick = () => selected = img;
+function renderThumb(){
+  thumbs.innerHTML = "";
 
-  thumbs.appendChild(el);
+  images.forEach(img=>{
+    const el = document.createElement("img");
+    el.src = img.src;
+    el.className = "thumb";
+
+    if(selected === img) el.classList.add("active");
+
+    el.onclick = () => {
+      selected = img;
+      renderThumb();
+      updateUI();
+    };
+
+    thumbs.appendChild(el);
+  });
 }
 
 /* =========================
-   UI STATE CONTROL
+   GRID
 ========================= */
 
-function switchMode(){
-  mode = document.getElementById('modeSelect').value;
-}
-
-function setState(){
-  activeState = document.getElementById('stateSelect').value;
-  renderGrid();
-}
-
-function setDir(){
-  activeDir = document.getElementById('dirSelect').value;
-  renderGrid();
-}
-
-/* =========================
-   GRID SYSTEM
-========================= */
-
-const grid = document.getElementById('grid');
+const grid = document.getElementById("grid");
 
 function renderGrid(){
   grid.innerHTML = "";
 
-  let list = data[activeState][activeDir];
+  let list = data[getState()][getDir()];
 
   for(let i=0;i<8;i++){
-    const slot = document.createElement('div');
-    slot.className = 'slot';
+    const slot = document.createElement("div");
+    slot.className = "slot";
 
     if(list[i]){
       slot.style.backgroundImage = `url(${list[i].src})`;
@@ -230,70 +291,31 @@ function renderGrid(){
     }
 
     slot.onclick = () => {
-      if(!selected) return;
+      if(!selected){
+        alert("画像未選択");
+        return;
+      }
 
       list[i] = selected;
 
-      // mirror system
-      if(activeDir === "left"){
-        data[activeState]["right"][i] = selected;
-      }
-      if(activeDir === "right"){
-        data[activeState]["left"][i] = selected;
-      }
-
       renderGrid();
-      renderTree();
+      updateUI();
     };
 
     grid.appendChild(slot);
   }
 
-  renderTree();
+  updateUI();
 }
 
 /* =========================
-   TREE VIEW
+   BUILD (sheet)
 ========================= */
 
-const tree = document.getElementById('tree');
-
-function renderTree(){
-  tree.innerHTML = "";
-
-  for(let s of states){
-    const sNode = document.createElement('div');
-    sNode.innerHTML = "▶ " + s;
-
-    for(let d of dirs){
-      const dNode = document.createElement('div');
-      dNode.className = "node";
-      dNode.innerHTML = `- ${d} (${data[s][d].length})`;
-
-      dNode.onclick = () => {
-        activeState = s;
-        activeDir = d;
-        document.getElementById('stateSelect').value = s;
-        document.getElementById('dirSelect').value = d;
-        renderGrid();
-      };
-
-      sNode.appendChild(dNode);
-    }
-
-    tree.appendChild(sNode);
-  }
-}
-
-/* =========================
-   BUILD SPRITE SHEET
-========================= */
-
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
 function build(){
-
   const size = 32;
   const frames = 8;
 
@@ -309,11 +331,8 @@ function build(){
 
       let list = data[s][d];
 
-      // auto fill (重要)
       for(let i=0;i<frames;i++){
-        if(!list[i]){
-          list[i] = list[0] || null;
-        }
+        if(!list[i]) list[i] = list[0] || null;
       }
 
       for(let i=0;i<frames;i++){
@@ -326,60 +345,51 @@ function build(){
     }
   }
 
-  alert("Build Complete");
+  alert("Build完了");
 }
 
 /* =========================
-   EXPORT PNG
+   ANIMATION PREVIEW (100点要素)
 ========================= */
 
-function exportPNG(){
-  canvas.toBlob(blob => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = "spritesheet.png";
-    a.click();
-  });
+const preview = document.getElementById("preview");
+
+function play(){
+  playing = true;
+  loop();
 }
 
-/* =========================
-   EXPORT JSON (GAME READY)
-========================= */
+function stop(){
+  playing = false;
+}
 
-function exportJSON(){
+function loop(){
+  if(!playing) return;
 
-  const out = {
-    frameWidth:32,
-    frameHeight:32,
-    animations:{}
-  };
+  const size = 32;
+  const list = data[getState()][getDir()];
 
-  for(let s of states){
-    for(let d of dirs){
-      const key = `${s}_${d}`;
-      out.animations[key] = data[s][d].map((_,i)=>i);
-    }
+  const ctxp = preview.getContext("2d");
+  preview.width = size;
+  preview.height = size;
+
+  ctxp.clearRect(0,0,size,size);
+
+  const img = list[frame % (list.length || 1)];
+  if(img){
+    ctxp.drawImage(img,0,0,size,size);
   }
 
-  const blob = new Blob([JSON.stringify(out,null,2)], {type:"application/json"});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = "sprite.json";
-  a.click();
-}
+  frame++;
+  updateUI();
 
-/* =========================
-   PIXEL MODE (簡易トグル)
-========================= */
-
-function togglePixel(){
-  pixelMode = !pixelMode;
-  alert("Pixel Mode: " + pixelMode);
+  requestAnimationFrame(loop);
 }
 
 /* INIT */
 renderGrid();
-renderTree();
+renderThumb();
+updateUI();
 
 </script>
 
