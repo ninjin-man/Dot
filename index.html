@@ -2,29 +2,26 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ドット絵 特徴抽出＆量産ジェネレーター（自動縮小版）</title>
+    <title>ドット絵 特徴抽出ジェネレーター（背景自動カット版）</title>
     <style>
         body { background: #2c2c2c; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
         .container { background: #3a3a3a; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; }
         .canvas-area { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
         canvas { 
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="8" height="8" fill="%23ccc"/><rect x="8" y="8" width="8" height="8" fill="%23ccc"/><rect x="8" width="8" height="8" fill="%23fff"/><rect y="8" width="8" height="8" fill="%23fff"/></svg>'); 
+            background: #444; /* 背景が切り抜かれたか分かりやすいように暗いグレーに設定 */
             image-rendering: pixelated; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 4px;
         }
         button, input[type="file"] { margin: 10px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
         button { background: #4CAF50; color: white; border: none; border-radius: 4px; font-weight: bold; }
         button:hover { background: #45a049; }
         button:disabled { background: #666; cursor: not-allowed; }
-        .hint { color: #aaa; font-size: 14px; text-align: left; margin-bottom: 15px;}
     </style>
 </head>
 <body>
 
     <div class="container">
         <h2>ドット絵 特徴抽出ジェネレーター</h2>
-        <div class="hint">
-            <strong>改良版:</strong> 大きな画像をアップロードしても、自動的にドット絵サイズに縮小して解析します。
-        </div>
+        <p>改良版: 左上のピクセル色を「背景」として自動カットします。</p>
 
         <input type="file" id="imageUpload" accept="image/png, image/jpeg">
         <button id="generateBtn" onclick="generate()" disabled>量産する</button>
@@ -32,7 +29,7 @@
         <h3>元の画像（解析用サイズ）</h3>
         <canvas id="originalCanvas"></canvas>
 
-        <h3>量産されたバリエーション</h3>
+        <h3>量産されたバリエーション（シルエット維持）</h3>
         <div class="canvas-area" id="output"></div>
     </div>
 
@@ -55,16 +52,20 @@
         reader.readAsDataURL(file);
     });
 
-    function rgbaToHex(r, g, b, a) {
-        if (a < 128) return null; 
+    // RGBからHexカラーコードへの変換
+    function rgbToHex(r, g, b) {
         return "#" + (16777216 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    // 色の距離（似ている色か）を計算
+    function colorDistance(r1, g1, b1, r2, g2, b2) {
+        return Math.sqrt(Math.pow(r1-r2, 2) + Math.pow(g1-g2, 2) + Math.pow(b1-b2, 2));
     }
 
     function analyzeImage(img) {
         const canvas = document.getElementById('originalCanvas');
         const ctx = canvas.getContext('2d');
         
-        // ★改良ポイント：画像が大きい場合は最大64pxに自動縮小する
         const MAX_SIZE = 64;
         let scale = 1;
         if (img.width > MAX_SIZE || img.height > MAX_SIZE) {
@@ -77,16 +78,18 @@
         canvas.width = imgWidth;
         canvas.height = imgHeight;
         
-        // 画面上では見やすいように拡大表示（元のサイズ感に合わせる）
         let displayScale = MAX_SIZE / Math.max(imgWidth, imgHeight) * 4;
         canvas.style.width = (imgWidth * displayScale) + "px"; 
         canvas.style.height = (imgHeight * displayScale) + "px";
         
-        // 縮小時にドット感がぼやけないように設定
         ctx.imageSmoothingEnabled = false; 
         ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
         
         const data = ctx.getImageData(0, 0, imgWidth, imgHeight).data;
+        
+        // ★改良：左上(0,0)のピクセルを「背景色」として取得
+        const bgR = data[0], bgG = data[1], bgB = data[2];
+        const BG_TOLERANCE = 30; // 背景色とみなす許容範囲
         
         silhouette = [];
         colorsByY = [];
@@ -97,33 +100,36 @@
             colorsByY[y] = {};
             for(let x = 0; x < imgWidth; x++) {
                 const idx = (y * imgWidth + x) * 4;
-                const color = rgbaToHex(data[idx], data[idx+1], data[idx+2], data[idx+3]);
+                const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
                 
-                silhouette[y][x] = color ? 1 : 0;
+                // 背景色に近い、または透明な場合はスキップ
+                let isBg = colorDistance(r, g, b, bgR, bgG, bgB) < BG_TOLERANCE || a < 128;
                 
-                if(color) {
+                if(isBg) {
+                    silhouette[y][x] = 0;
+                } else {
+                    silhouette[y][x] = 1;
+                    const color = rgbToHex(r, g, b);
+                    
                     colorsByY[y][color] = (colorsByY[y][color] || 0) + 1;
                     
                     if (x > 0 && silhouette[y][x-1] === 1) {
                         const prevIdx = (y * imgWidth + (x-1)) * 4;
-                        const prevColor = rgbaToHex(data[prevIdx], data[prevIdx+1], data[prevIdx+2], data[prevIdx+3]);
-                        if(prevColor) {
-                            if(!markov[prevColor]) markov[prevColor] = {};
-                            markov[prevColor][color] = (markov[prevColor][color] || 0) + 1;
-                        }
+                        const prevColor = rgbToHex(data[prevIdx], data[prevIdx+1], data[prevIdx+2]);
+                        if(!markov[prevColor]) markov[prevColor] = {};
+                        markov[prevColor][color] = (markov[prevColor][color] || 0) + 1;
                     }
                 }
             }
         }
         
         document.getElementById('generateBtn').disabled = false;
-        alert("特徴の抽出が完了しました！「量産する」ボタンを押してください。");
+        alert("特徴の抽出が完了しました！");
     }
 
     function generate() {
         const outputDiv = document.getElementById('output');
         outputDiv.innerHTML = ""; 
-        
         const canvas = document.getElementById('originalCanvas');
         
         for(let i = 0; i < 8; i++) {
