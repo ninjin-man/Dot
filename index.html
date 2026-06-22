@@ -3,90 +3,174 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Sprite Studio v3 - Offline</title>
+<title>Sprite Studio v3 FULL</title>
 
 <style>
-body { font-family: sans-serif; margin:0; background:#111; color:#eee; }
+body { margin:0; font-family:sans-serif; background:#111; color:#eee; }
+
 header { padding:10px; background:#222; }
-#app { padding:10px; }
+
+#app { display:flex; height:calc(100vh - 40px); }
+
+.panel { padding:10px; overflow:auto; }
+.left { width:25%; border-right:1px solid #333; }
+.center { width:50%; border-right:1px solid #333; }
+.right { width:25%; }
 
 .drop {
   border:2px dashed #555;
-  padding:20px;
+  padding:10px;
   text-align:center;
   margin-bottom:10px;
 }
 
-.grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,80px);
-  gap:6px;
-}
-
 .thumb {
-  width:80px;
-  height:80px;
+  width:70px; height:70px;
   object-fit:contain;
-  background:#000;
   border:1px solid #333;
+  margin:2px;
+  cursor:pointer;
 }
 
-button {
-  margin:4px;
-  padding:6px 10px;
+.slot {
+  width:60px; height:60px;
+  border:1px solid #555;
+  display:inline-block;
+  margin:2px;
+  background:#000;
+}
+
+.tree { font-size:13px; }
+.node { margin-left:10px; cursor:pointer; }
+.active { color:yellow; }
+
+button, select {
+  margin:3px;
+  padding:5px;
 }
 
 canvas { display:none; }
+.small { font-size:11px; opacity:0.7; }
 </style>
 </head>
 
 <body>
 
 <header>
-Sprite Studio v3 (Offline Single File)
+Sprite Studio v3 FULL
 </header>
 
 <div id="app">
 
-<div class="drop" id="drop">
-画像をドラッグ or クリック
-<input type="file" id="file" multiple accept="image/*" style="display:none">
+<!-- LEFT -->
+<div class="panel left">
+
+<div class="drop" id="drop">Drop Images</div>
+<input type="file" id="file" multiple style="display:none">
+
+<div class="small">画像一覧</div>
+<div id="thumbs"></div>
+
+</div>
+
+<!-- CENTER -->
+<div class="panel center">
+
+<!-- MENU -->
+<div>
+<select id="modeSelect" onchange="switchMode()">
+<option value="sprite">Sprite Mode</option>
+<option value="monster">Monster Mode</option>
+<option value="item">Item Mode</option>
+</select>
+
+<select id="stateSelect" onchange="setState()">
+<option>idle</option>
+<option>walk</option>
+<option>attack</option>
+<option>hit</option>
+<option>death</option>
+</select>
+
+<select id="dirSelect" onchange="setDir()">
+<option>down</option>
+<option>left</option>
+<option>right</option>
+<option>up</option>
+</select>
 </div>
 
 <div>
-<button onclick="makeSheet()">スプライト生成</button>
-<button onclick="downloadPNG()">PNG出力</button>
-<button onclick="downloadJSON()">JSON出力</button>
+<button onclick="build()">Build</button>
+<button onclick="exportPNG()">PNG</button>
+<button onclick="exportJSON()">JSON</button>
+<button onclick="togglePixel()">Pixel Mode</button>
 </div>
 
-<div class="grid" id="preview"></div>
+<div id="grid"></div>
 
 <canvas id="canvas"></canvas>
 
 </div>
 
+<!-- RIGHT -->
+<div class="panel right">
+<div class="tree" id="tree"></div>
+</div>
+
+</div>
+
 <script>
+
+/* =========================
+   STATE CORE
+========================= */
+
 let images = [];
+let selected = null;
 
-const fileInput = document.getElementById('file');
+let mode = "sprite";
+let pixelMode = false;
+
+const states = ["idle","walk","attack","hit","death"];
+const dirs = ["down","left","right","up"];
+
+let data = {};
+
+let activeState = "idle";
+let activeDir = "down";
+
+init();
+
+function init(){
+  for(let s of states){
+    data[s] = {};
+    for(let d of dirs){
+      data[s][d] = [];
+    }
+  }
+}
+
+/* =========================
+   FILE LOAD
+========================= */
+
 const drop = document.getElementById('drop');
-const preview = document.getElementById('preview');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const file = document.getElementById('file');
+const thumbs = document.getElementById('thumbs');
 
-drop.onclick = () => fileInput.click();
+drop.onclick = () => file.click();
 
-fileInput.onchange = e => loadFiles(e.target.files);
+file.onchange = e => load(e.target.files);
 
-// DnD
-drop.ondragover = e => { e.preventDefault(); };
+drop.ondragover = e => e.preventDefault();
 drop.ondrop = e => {
   e.preventDefault();
-  loadFiles(e.dataTransfer.files);
+  load(e.dataTransfer.files);
 };
 
-function loadFiles(files){
-  for (let f of files){
+function load(files){
+  for(let f of files){
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => {
@@ -99,60 +183,204 @@ function loadFiles(files){
 
 function renderThumb(img){
   const el = document.createElement('img');
-  el.className = 'thumb';
   el.src = img.src;
-  preview.appendChild(el);
+  el.className = 'thumb';
+
+  el.onclick = () => selected = img;
+
+  thumbs.appendChild(el);
 }
 
-function makeSheet(){
-  if(images.length === 0) return;
+/* =========================
+   UI STATE CONTROL
+========================= */
+
+function switchMode(){
+  mode = document.getElementById('modeSelect').value;
+}
+
+function setState(){
+  activeState = document.getElementById('stateSelect').value;
+  renderGrid();
+}
+
+function setDir(){
+  activeDir = document.getElementById('dirSelect').value;
+  renderGrid();
+}
+
+/* =========================
+   GRID SYSTEM
+========================= */
+
+const grid = document.getElementById('grid');
+
+function renderGrid(){
+  grid.innerHTML = "";
+
+  let list = data[activeState][activeDir];
+
+  for(let i=0;i<8;i++){
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+
+    if(list[i]){
+      slot.style.backgroundImage = `url(${list[i].src})`;
+      slot.style.backgroundSize = "cover";
+    }
+
+    slot.onclick = () => {
+      if(!selected) return;
+
+      list[i] = selected;
+
+      // mirror system
+      if(activeDir === "left"){
+        data[activeState]["right"][i] = selected;
+      }
+      if(activeDir === "right"){
+        data[activeState]["left"][i] = selected;
+      }
+
+      renderGrid();
+      renderTree();
+    };
+
+    grid.appendChild(slot);
+  }
+
+  renderTree();
+}
+
+/* =========================
+   TREE VIEW
+========================= */
+
+const tree = document.getElementById('tree');
+
+function renderTree(){
+  tree.innerHTML = "";
+
+  for(let s of states){
+    const sNode = document.createElement('div');
+    sNode.innerHTML = "▶ " + s;
+
+    for(let d of dirs){
+      const dNode = document.createElement('div');
+      dNode.className = "node";
+      dNode.innerHTML = `- ${d} (${data[s][d].length})`;
+
+      dNode.onclick = () => {
+        activeState = s;
+        activeDir = d;
+        document.getElementById('stateSelect').value = s;
+        document.getElementById('dirSelect').value = d;
+        renderGrid();
+      };
+
+      sNode.appendChild(dNode);
+    }
+
+    tree.appendChild(sNode);
+  }
+}
+
+/* =========================
+   BUILD SPRITE SHEET
+========================= */
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function build(){
 
   const size = 32;
-  const cols = Math.ceil(Math.sqrt(images.length));
-  const rows = Math.ceil(images.length / cols);
+  const frames = 8;
 
-  canvas.width = cols * size;
-  canvas.height = rows * size;
+  canvas.width = frames * size;
+  canvas.height = states.length * dirs.length * size;
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  images.forEach((img, i) => {
-    const x = (i % cols) * size;
-    const y = Math.floor(i / cols) * size;
+  let y = 0;
 
-    ctx.drawImage(img, x, y, size, size);
-  });
+  for(let s of states){
+    for(let d of dirs){
 
-  alert("Sprite sheet生成完了");
+      let list = data[s][d];
+
+      // auto fill (重要)
+      for(let i=0;i<frames;i++){
+        if(!list[i]){
+          list[i] = list[0] || null;
+        }
+      }
+
+      for(let i=0;i<frames;i++){
+        if(list[i]){
+          ctx.drawImage(list[i], i*size, y, size, size);
+        }
+      }
+
+      y += size;
+    }
+  }
+
+  alert("Build Complete");
 }
 
-function downloadPNG(){
+/* =========================
+   EXPORT PNG
+========================= */
+
+function exportPNG(){
   canvas.toBlob(blob => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'spritesheet.png';
+    a.download = "spritesheet.png";
     a.click();
   });
 }
 
-function downloadJSON(){
-  const size = 32;
-  const cols = Math.ceil(Math.sqrt(images.length));
-  const rows = Math.ceil(images.length / cols);
+/* =========================
+   EXPORT JSON (GAME READY)
+========================= */
 
-  const data = {
-    frameWidth: size,
-    frameHeight: size,
-    columns: cols,
-    rows: rows
+function exportJSON(){
+
+  const out = {
+    frameWidth:32,
+    frameHeight:32,
+    animations:{}
   };
 
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  for(let s of states){
+    for(let d of dirs){
+      const key = `${s}_${d}`;
+      out.animations[key] = data[s][d].map((_,i)=>i);
+    }
+  }
+
+  const blob = new Blob([JSON.stringify(out,null,2)], {type:"application/json"});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'spritesheet.json';
+  a.download = "sprite.json";
   a.click();
 }
+
+/* =========================
+   PIXEL MODE (簡易トグル)
+========================= */
+
+function togglePixel(){
+  pixelMode = !pixelMode;
+  alert("Pixel Mode: " + pixelMode);
+}
+
+/* INIT */
+renderGrid();
+renderTree();
+
 </script>
 
 </body>
