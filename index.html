@@ -1,397 +1,121 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Sprite Studio v3 - FINAL 100</title>
-
-<style>
-body { margin:0; font-family:sans-serif; background:#111; color:#eee; }
-
-header { padding:10px; background:#222; font-weight:bold; }
-
-#app { display:flex; height:calc(100vh - 40px); }
-
-.panel { padding:10px; overflow:auto; }
-.left { width:25%; border-right:1px solid #333; }
-.center { width:50%; border-right:1px solid #333; }
-.right { width:25%; }
-
-.drop {
-  border:2px dashed #555;
-  padding:10px;
-  text-align:center;
-  margin-bottom:10px;
-  cursor:pointer;
-}
-
-.thumb {
-  width:64px; height:64px;
-  object-fit:contain;
-  border:2px solid #333;
-  margin:2px;
-  cursor:pointer;
-}
-
-.thumb.active {
-  border:2px solid yellow;
-}
-
-.slot {
-  width:60px; height:60px;
-  border:1px solid #555;
-  display:inline-block;
-  margin:2px;
-  background:#000;
-  cursor:pointer;
-}
-
-button, select {
-  margin:3px;
-  padding:6px;
-}
-
-.box {
-  background:#1b1b1b;
-  padding:8px;
-  margin-bottom:8px;
-  border:1px solid #333;
-}
-
-.statusBar {
-  background:#000;
-  padding:8px;
-  border:1px solid #333;
-  margin-bottom:10px;
-}
-
-.preview {
-  border:1px solid #333;
-  background:#000;
-  width:128px;
-  height:128px;
-}
-
-canvas { display:none; }
-
-.small { font-size:12px; opacity:0.8; }
-</style>
+    <meta charset="UTF-8">
+    <title>ドット絵アバター量産ツール（パーツ組み合わせテスト）</title>
+    <style>
+        body {
+            background-color: #2c2c2c;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+        /* ドット絵がぼやけないようにする魔法のCSS */
+        canvas {
+            background-color: #f4ecd8;
+            image-rendering: pixelated; /* ピクセルをくっきりさせる */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        p {
+            color: #aaa;
+            font-size: 14px;
+        }
+    </style>
 </head>
-
 <body>
 
-<header>
-Sprite Studio v3 - FINAL (100 POINT UX)
-</header>
-
-<div id="app">
-
-<!-- LEFT -->
-<div class="panel left">
-
-<div class="box">
-<div><b>画像</b></div>
-<div class="drop" id="drop">クリック / ドロップ</div>
-<input type="file" id="file" multiple style="display:none">
-<div class="small">画像を選んでから中央クリック</div>
-</div>
-
-<div class="box">
-<div><b>選択中</b></div>
-<div id="selectedInfo">なし</div>
-<button onclick="clearSelected()">解除</button>
-</div>
-
-<div id="thumbs"></div>
-
-</div>
-
-<!-- CENTER -->
-<div class="panel center">
-
-<div class="statusBar" id="status"></div>
-
-<div class="box">
-<select id="state">
-<option>idle</option>
-<option>walk</option>
-<option>attack</option>
-<option>hit</option>
-<option>death</option>
-</select>
-
-<select id="dir">
-<option>down</option>
-<option>left</option>
-<option>right</option>
-<option>up</option>
-</select>
-
-<button onclick="build()">Build</button>
-<button onclick="play()">Play</button>
-<button onclick="stop()">Stop</button>
-</div>
-
-<div id="grid"></div>
-
-<canvas id="canvas"></canvas>
-
-<div class="box">
-<div><b>アニメプレビュー</b></div>
-<canvas id="preview" class="preview"></canvas>
-</div>
-
-</div>
-
-<!-- RIGHT -->
-<div class="panel right">
-
-<div class="box">
-<b>操作説明</b><br><br>
-①画像選択<br>
-②状態選択<br>
-③マスクリック<br>
-④Playで確認
-</div>
-
-<div class="box">
-<b>構造</b>
-<div id="tree"></div>
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-/* =========================
-   CORE
-========================= */
-
-let images = [];
-let selected = null;
-
-const states = ["idle","walk","attack","hit","death"];
-const dirs = ["down","left","right","up"];
-
-let data = {};
-
-let playing = false;
-let frame = 0;
-
-init();
-
-function init(){
-  for(let s of states){
-    data[s] = {};
-    for(let d of dirs){
-      data[s][d] = [];
-    }
-  }
-}
-
-/* =========================
-   UI UPDATE
-========================= */
-
-function updateUI(){
-  document.getElementById("status").innerText =
-    `STATE:${getState()} / DIR:${getDir()} / FRAME:${frame}`;
-
-  document.getElementById("selectedInfo").innerText =
-    selected ? "選択中あり" : "なし";
-}
-
-function getState(){ return document.getElementById("state").value; }
-function getDir(){ return document.getElementById("dir").value; }
-
-/* =========================
-   SELECT
-========================= */
-
-function clearSelected(){
-  selected = null;
-  updateUI();
-  renderThumb();
-}
-
-/* =========================
-   FILE
-========================= */
-
-const drop = document.getElementById("drop");
-const file = document.getElementById("file");
-const thumbs = document.getElementById("thumbs");
-
-drop.onclick = () => file.click();
-
-file.onchange = e => load(e.target.files);
-
-drop.ondragover = e => e.preventDefault();
-drop.ondrop = e => {
-  e.preventDefault();
-  load(e.dataTransfer.files);
-};
-
-function load(files){
-  for(let f of files){
-    const url = URL.createObjectURL(f);
-    const img = new Image();
-    img.onload = () => {
-      images.push(img);
-      renderThumb();
-    };
-    img.src = url;
-  }
-}
-
-/* =========================
-   THUMB
-========================= */
-
-function renderThumb(){
-  thumbs.innerHTML = "";
-
-  images.forEach(img=>{
-    const el = document.createElement("img");
-    el.src = img.src;
-    el.className = "thumb";
-
-    if(selected === img) el.classList.add("active");
-
-    el.onclick = () => {
-      selected = img;
-      renderThumb();
-      updateUI();
-    };
-
-    thumbs.appendChild(el);
-  });
-}
-
-/* =========================
-   GRID
-========================= */
-
-const grid = document.getElementById("grid");
-
-function renderGrid(){
-  grid.innerHTML = "";
-
-  let list = data[getState()][getDir()];
-
-  for(let i=0;i<8;i++){
-    const slot = document.createElement("div");
-    slot.className = "slot";
-
-    if(list[i]){
-      slot.style.backgroundImage = `url(${list[i].src})`;
-      slot.style.backgroundSize = "cover";
-    }
-
-    slot.onclick = () => {
-      if(!selected){
-        alert("画像未選択");
-        return;
-      }
-
-      list[i] = selected;
-
-      renderGrid();
-      updateUI();
-    };
-
-    grid.appendChild(slot);
-  }
-
-  updateUI();
-}
-
-/* =========================
-   BUILD (sheet)
-========================= */
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-
-function build(){
-  const size = 32;
-  const frames = 8;
-
-  canvas.width = frames * size;
-  canvas.height = states.length * dirs.length * size;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  let y = 0;
-
-  for(let s of states){
-    for(let d of dirs){
-
-      let list = data[s][d];
-
-      for(let i=0;i<frames;i++){
-        if(!list[i]) list[i] = list[0] || null;
-      }
-
-      for(let i=0;i<frames;i++){
-        if(list[i]){
-          ctx.drawImage(list[i], i*size, y, size, size);
+    <h2>和風アバター量産ジェネレーター</h2>
+    <p>AIは不使用。パーツの色や有無をプログラムでランダムに重ね合わせています。</p>
+
+    <canvas id="canvas" width="64" height="64" style="width: 256px; height: 256px;"></canvas>
+    <br>
+    
+    <button onclick="generateAvatar()">新しいキャラを量産する</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // ① パーツのバリエーションを定義
+        const hairColors = ["#1a1a1a", "#5c3a21", "#4a5e82", "#8b2e2e"]; // 黒、茶、紺、赤
+        const clothesColors = ["#5c7b99", "#8c4444", "#486b48", "#333333"]; // 水色、えんじ、緑、黒
+        const skinColor = "#ffcc99"; // 肌色
+
+        // ② キャラクターを描画するメイン関数
+        function generateAvatar() {
+            // キャンバスを一旦クリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // ランダムにパーツの色や有無を決定（ガチャ）
+            const hairColor = hairColors[Math.floor(Math.random() * hairColors.length)];
+            const clothColor = clothesColors[Math.floor(Math.random() * clothesColors.length)];
+            const hasSword = Math.random() > 0.5; // 50%の確率で刀を持たせる
+            const isLongHair = Math.random() > 0.5; // 50%の確率で長髪にする
+
+            // ③ 下から順番にパーツを描いていく（重ね合わせ）
+
+            // [1. 素体] 顔と体と足
+            ctx.fillStyle = skinColor;
+            ctx.fillRect(24, 16, 16, 16); // 顔
+            ctx.fillRect(28, 32, 8, 20);  // 体
+            ctx.fillRect(24, 52, 4, 8);   // 足(左)
+            ctx.fillRect(36, 52, 4, 8);   // 足(右)
+
+            // [2. 服] 着物
+            ctx.fillStyle = clothColor;
+            ctx.fillRect(20, 32, 24, 16); // 胴体部分
+            ctx.fillRect(18, 48, 28, 6);  // 裾（すそ）
+            
+            // 帯（赤で固定）
+            ctx.fillStyle = "#b32424";
+            ctx.fillRect(20, 42, 24, 4);
+
+            // [3. 髪型]
+            ctx.fillStyle = hairColor;
+            ctx.fillRect(22, 12, 20, 8);  // 頭頂部・前髪
+            ctx.fillRect(20, 16, 4, 16);  // もみあげ(左)
+            ctx.fillRect(40, 16, 4, 16);  // もみあげ(右)
+            
+            // 長髪の場合の追加パーツ
+            if (isLongHair) {
+                ctx.fillRect(16, 24, 4, 16); // 後ろ髪
+                ctx.fillRect(44, 24, 4, 16); // 後ろ髪
+            }
+
+            // [4. 武器]
+            if (hasSword) {
+                // 刀の刃
+                ctx.fillStyle = "#cccccc"; 
+                ctx.fillRect(12, 36, 16, 4);
+                // 刀の柄（つか）
+                ctx.fillStyle = "#1a1a1a"; 
+                ctx.fillRect(28, 36, 4, 4);
+            }
+
+            // [5. 顔のパーツ] 目
+            ctx.fillStyle = "#1a1a1a";
+            ctx.fillRect(28, 24, 2, 2); // 左目
+            ctx.fillRect(34, 24, 2, 2); // 右目
         }
-      }
 
-      y += size;
-    }
-  }
-
-  alert("Build完了");
-}
-
-/* =========================
-   ANIMATION PREVIEW (100点要素)
-========================= */
-
-const preview = document.getElementById("preview");
-
-function play(){
-  playing = true;
-  loop();
-}
-
-function stop(){
-  playing = false;
-}
-
-function loop(){
-  if(!playing) return;
-
-  const size = 32;
-  const list = data[getState()][getDir()];
-
-  const ctxp = preview.getContext("2d");
-  preview.width = size;
-  preview.height = size;
-
-  ctxp.clearRect(0,0,size,size);
-
-  const img = list[frame % (list.length || 1)];
-  if(img){
-    ctxp.drawImage(img,0,0,size,size);
-  }
-
-  frame++;
-  updateUI();
-
-  requestAnimationFrame(loop);
-}
-
-/* INIT */
-renderGrid();
-renderThumb();
-updateUI();
-
-</script>
-
+        // ページを開いた時に最初の1体を描画しておく
+        generateAvatar();
+    </script>
 </body>
 </html>
