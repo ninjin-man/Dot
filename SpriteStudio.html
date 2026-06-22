@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprite Studio</title>
+<style>
+body{font-family:sans-serif;padding:12px}
+canvas{max-width:100%;border:1px solid #ccc;margin-top:10px}
+label{display:block;margin:8px 0}
+button{margin:4px;padding:8px 12px}
+</style>
+</head>
+<body>
+<h2>Sprite Studio</h2>
+
+<label>
+処理モード:
+<select id="mode">
+<option value="transparent">透過処理</option>
+<option value="sheet">スプライトシート生成</option>
+<option value="both">透過→スプライトシート生成</option>
+</select>
+</label>
+
+<input type="file" id="files" multiple accept="image/*">
+<br>
+<button id="run">実行</button>
+<button id="openBtn" disabled>結果画像を開く</button>
+
+<p id="msg"></p>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let resultUrl=null;
+
+function loadImage(file){
+ return new Promise(res=>{
+   const img=new Image();
+   img.onload=()=>res(img);
+   img.src=URL.createObjectURL(file);
+ });
+}
+
+async function makeTransparent(img){
+ const c=document.createElement('canvas');
+ c.width=img.width;
+ c.height=img.height;
+ const x=c.getContext('2d');
+ x.drawImage(img,0,0);
+
+ const d=x.getImageData(0,0,c.width,c.height);
+
+ const r=d.data[0];
+ const g=d.data[1];
+ const b=d.data[2];
+
+ for(let i=0;i<d.data.length;i+=4){
+   if(d.data[i]===r && d.data[i+1]===g && d.data[i+2]===b){
+      d.data[i+3]=0;
+   }
+ }
+
+ x.putImageData(d,0,0);
+
+ return await new Promise(resolve=>{
+   const out=new Image();
+   c.toBlob(blob=>{
+      out.onload=()=>resolve(out);
+      out.src=URL.createObjectURL(blob);
+   },"image/png");
+ });
+}
+
+document.getElementById('run').onclick=async()=>{
+ const files=[...document.getElementById('files').files];
+ if(!files.length)return;
+
+ const mode=document.getElementById('mode').value;
+
+ let imgs=await Promise.all(files.map(loadImage));
+
+ if(mode==="transparent" || mode==="both"){
+   imgs=await Promise.all(imgs.map(makeTransparent));
+ }
+
+ if(mode==="transparent"){
+   canvas.width=imgs[0].width;
+   canvas.height=imgs[0].height;
+   ctx.clearRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(imgs[0],0,0);
+ }
+ else{
+   const w=imgs[0].width;
+   const h=imgs[0].height;
+
+   canvas.width=w*imgs.length;
+   canvas.height=h;
+
+   ctx.clearRect(0,0,canvas.width,canvas.height);
+
+   imgs.forEach((img,i)=>{
+      ctx.drawImage(img,i*w,0);
+   });
+ }
+
+ canvas.toBlob(blob=>{
+   resultUrl=URL.createObjectURL(blob);
+   document.getElementById('openBtn').disabled=false;
+   document.getElementById('msg').textContent="結果生成完了";
+ },"image/png");
+};
+
+document.getElementById('openBtn').onclick=()=>{
+ if(resultUrl) window.open(resultUrl,"_blank");
+};
+</script>
+</body>
+</html>
