@@ -2,244 +2,240 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>32x32 素体作成エディター（完全対称・自動生成）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AIピンポイント切り抜き（MobileSAM）</title>
     <style>
         body {
-            background-color: #2c2c2c;
-            color: white;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             text-align: center;
             padding: 20px;
-            user-select: none;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            margin: 0;
         }
-        .editor-wrapper {
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        }
+        h1 { font-size: 22px; margin-bottom: 5px; }
+        .subtitle { font-size: 12px; color: #86868b; margin-bottom: 20px; }
+        
+        /* ボタン・入力エリアの装飾 */
+        .file-select-btn {
+            background: #0071e3;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: bold;
             display: inline-block;
-            background-color: #3a3a3a;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            margin-bottom: 20px;
         }
-        .canvas-container {
+        input[type="file"] { display: none; }
+        
+        /* ローディング表示 */
+        #status {
+            display: none;
+            background: #e8e8ed;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        /* 画像表示エリア */
+        #stage {
             position: relative;
-            width: 512px;
-            height: 512px;
-            margin: 0 auto 20px auto;
-            border: 2px solid #555;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="%23ccc"/><rect x="16" y="16" width="16" height="16" fill="%23ccc"/><rect x="16" width="16" height="16" fill="%23fff"/><rect y="16" width="16" height="16" fill="%23fff"/></svg>');
+            margin-top: 15px;
+            display: inline-block;
+            max-width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        #src-img {
+            display: block;
+            max-width: 100%;
+            height: auto;
             cursor: crosshair;
         }
-        canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 512px; height: 512px;
-            image-rendering: pixelated;
+        #output-canvas {
+            max-width: 100%;
+            height: auto;
+            display: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="10" height="10" fill="%23eee"/><rect x="10" y="10" width="10" height="10" fill="%23eee"/></svg>'); /* 透明背景の市松模様 */
         }
-        #guideCanvas { pointer-events: none; opacity: 0.8; }
-        
-        .palette { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .color-btn {
-            width: 40px; height: 40px;
-            border: 3px solid transparent; border-radius: 4px;
-            cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+
+        .save-btn {
+            background: #34c759;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 20px;
+            display: none;
+            width: 100%;
+            cursor: pointer;
         }
-        .color-btn.active { border-color: #fff; transform: scale(1.1); }
-        .eraser-btn { background: repeating-linear-gradient(45deg, #ccc, #ccc 5px, #fff 5px, #fff 10px); }
-        
-        button.action-btn {
-            background-color: #4CAF50; color: white; border: none;
-            padding: 12px 24px; font-size: 16px; font-weight: bold;
-            border-radius: 4px; cursor: pointer; margin: 0 5px;
-        }
-        button.action-btn:hover { background-color: #45a049; }
-        button.clear-btn { background-color: #e74c3c; }
-        button.clear-btn:hover { background-color: #c0392b; }
-        button.magic-btn { background-color: #9b59b6; box-shadow: 0 0 10px #9b59b6; }
-        button.magic-btn:hover { background-color: #8e44ad; }
-        
-        .info { font-size: 14px; color: #aaa; margin-top: 15px; line-height: 1.6; text-align: left; display: inline-block; }
     </style>
 </head>
 <body>
 
-<div class="editor-wrapper">
-    <h2>32×32 素体作成キャンバス</h2>
-    
-    <div class="palette" id="palette">
-        <div class="color-btn active" style="background-color: #1a1a1a;" data-color="#1a1a1a" title="黒（主線・目）"></div>
-        <div class="color-btn" style="background-color: #f8d8b8;" data-color="#f8d8b8" title="肌（ハイライト）"></div>
-        <div class="color-btn" style="background-color: #e8b080;" data-color="#e8b080" title="肌（ベース）"></div>
-        <div class="color-btn" style="background-color: #c07850;" data-color="#c07850" title="肌（影）"></div>
-        <div class="color-btn eraser-btn" data-color="erase" title="消しゴム（透明）"></div>
+<div class="container">
+    <h1>AIピンポイント切り抜き</h1>
+    <div class="subtitle">画像をタップした場所（服や刀）を自動抽出</div>
+
+    <label class="file-select-btn">
+        画像を選択する
+        <input type="file" id="file-input" accept="image/*">
+    </label>
+
+    <div id="status">ここに案内が表示されます</div>
+
+    <div id="stage">
+        <img id="src-img" alt="選択された画像">
+        <canvas id="output-canvas"></canvas>
     </div>
 
-    <div class="canvas-container">
-        <canvas id="drawCanvas" width="32" height="32"></canvas>
-        <canvas id="guideCanvas" width="512" height="512"></canvas>
-    </div>
-
-    <div>
-        <button class="action-btn magic-btn" onclick="autoGenerateBase()">✨ 素体を自動生成する</button>
-        <button class="action-btn clear-btn" onclick="clearCanvas()">全消去</button>
-        <button class="action-btn" onclick="saveImage()">PNGで保存する</button>
-    </div>
-
-    <div class="info">
-        <strong>【アップデート内容】</strong><br>
-        ・ご提案の<b>「左半分を右側に反転展開するプログラム」</b>を実装し、ドットの歪みを100%解消しました。<br>
-        ・手のジョイント位置（赤枠・青枠）を中央から等間隔、かつ同じ高さ（Y=21）に統一し、完全に対称化しました。
-    </div>
+    <button id="save-btn" class="save-btn">切り抜いたパーツを保存</button>
 </div>
 
-<script>
-    const drawCanvas = document.getElementById('drawCanvas');
-    const drawCtx = drawCanvas.getContext('2d');
-    const guideCanvas = document.getElementById('guideCanvas');
-    const guideCtx = guideCanvas.getContext('2d');
-    const SCALE = 16;
-    let currentColor = '#1a1a1a';
-    let isDrawing = false;
+<script type="module">
+    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+    
+    // AIのモデルファイルをインターネット（CDN）から直接読み込む設定
+    env.allowLocalModels = false;
 
-    // パレット処理
-    const colorBtns = document.querySelectorAll('.color-btn');
-    colorBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            colorBtns.forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentColor = e.target.getAttribute('data-color');
-        });
+    const fileInput = document.getElementById('file-input');
+    const status = document.getElementById('status');
+    const srcImg = document.getElementById('src-img');
+    const canvas = document.getElementById('output-canvas');
+    const ctx = canvas.getContext('2d');
+    const saveBtn = document.getElementById('save-btn');
+
+    let segmenter = null;
+
+    // 1. 画像が選択されたときの処理
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            srcImg.src = event.target.result;
+            srcImg.style.display = 'block';
+            canvas.style.display = 'none';
+            saveBtn.style.display = 'none';
+            
+            status.style.display = 'block';
+            status.innerHTML = '🔮 AIを起動しています...<br>(初回のみダウンロードに15秒ほどかかります)';
+            
+            // 画像が画面に表示されたら、AIの準備を開始
+            srcImg.onload = initAI;
+        };
+        reader.readAsDataURL(file);
     });
 
-    // ガイド線描画（完全左右対称に修正）
-    function drawGuides() {
-        guideCtx.clearRect(0, 0, 512, 512);
-        guideCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        guideCtx.lineWidth = 1;
-        for(let i = 0; i <= 32; i++) {
-            guideCtx.beginPath(); guideCtx.moveTo(i * SCALE, 0); guideCtx.lineTo(i * SCALE, 512);
-            guideCtx.moveTo(0, i * SCALE); guideCtx.lineTo(512, i * SCALE); guideCtx.stroke();
-        }
-        guideCtx.strokeStyle = 'rgba(255, 215, 0, 0.6)'; guideCtx.setLineDash([4, 4]);
-        [2, 16, 26].forEach(y => {
-            guideCtx.beginPath(); guideCtx.moveTo(0, y * SCALE); guideCtx.lineTo(512, y * SCALE); guideCtx.stroke();
-        });
-        guideCtx.setLineDash([]);
-        guideCtx.lineWidth = 2;
-        
-        // 右手（赤）: X=8, Y=21
-        guideCtx.strokeStyle = '#ff6b6b'; guideCtx.strokeRect(8 * SCALE, 21 * SCALE, SCALE, SCALE);
-        // 左手（青）: X=23, Y=21 (右から9マス目。これで完全に対称)
-        guideCtx.strokeStyle = '#4dabf7'; guideCtx.strokeRect(23 * SCALE, 21 * SCALE, SCALE, SCALE);
-    }
-    drawGuides();
-
-    // 描画処理
-    function paint(e) {
-        if (!isDrawing) return;
-        const rect = drawCanvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / SCALE);
-        const y = Math.floor((e.clientY - rect.top) / SCALE);
-        if (x < 0 || x >= 32 || y < 0 || y >= 32) return;
-        if (currentColor === 'erase') {
-            drawCtx.clearRect(x, y, 1, 1);
-        } else {
-            drawCtx.fillStyle = currentColor;
-            drawCtx.fillRect(x, y, 1, 1);
-        }
-    }
-
-    drawCanvas.addEventListener('mousedown', (e) => { isDrawing = true; paint(e); });
-    drawCanvas.addEventListener('mousemove', paint);
-    window.addEventListener('mouseup', () => { isDrawing = false; });
-    drawCanvas.addEventListener('touchstart', (e) => { isDrawing = true; e.preventDefault(); paint(e.touches[0]); });
-    drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); paint(e.touches[0]); });
-    window.addEventListener('touchend', () => { isDrawing = false; });
-
-    function clearCanvas() {
-        if(confirm('本当にすべて消去しますか？')) drawCtx.clearRect(0, 0, 32, 32);
-    }
-
-    function saveImage() {
-        const link = document.createElement('a');
-        link.download = 'perfect_base_body.png';
-        link.href = drawCanvas.toDataURL('image/png');
-        link.click();
-    }
-
-    // ★ 新・左右対称自動生成ロジック
-    function autoGenerateBase() {
-        drawCtx.clearRect(0, 0, 32, 32);
-        
-        const colors = {
-            'X': '#1a1a1a', // 主線
-            'L': '#f8d8b8', // ハイライト
-            'S': '#e8b080', // 肌ベース
-            'D': '#c07850', // 影
-            'E': '#000000', // 目
-            '.': null       // 透明
-        };
-
-    // ★ 完璧にデッサンを修正した32x32シレン風正面立ち絵データ（首のズレ修正版）
-    function autoGenerateBase() {
-        const baseMatrix = [
-            "................................", // 0
-            "................................", // 1
-            "...........XXXXXXXXXX...........", // 2
-            ".........XXLLLLLLLLLLXX.........", // 3
-            "........XLLSSSSSSSSSSDDX........", // 4
-            ".......XLSSSSSSSSSSSSSSDX.......", // 5
-            "......XLSSSSSSSSSSSSSSSSDX......", // 6
-            "......XLSSSSSSSSSSSSSSSSDX......", // 7
-            ".....XLSSSSSSSSSSSSSSSSSSDX.....", // 8
-            ".....XLSSSSSSSSSSSSSSSSSSDX.....", // 9
-            ".....XLSSSESSSSSSSSSSESSSDX.....", // 10
-            ".....XLSSSSSSSSSSSSSSSSSSDX.....", // 11
-            ".....XXDSSSSSSSSSSSSSSSSDXX.....", // 12
-            ".......XXDDSSSSSSSSSSDDXX.......", // 13 ★ここが左右1マス足りずズレていました
-            "........XXXDDDDDDDDDDXXX........", // 14 ★ここも同様に修正
-            "..........XXXXXXXXXXXX..........", // 15
-            ".........XXSSSSSSSSSSXX.........", // 16
-            "........XLSXSSSSSSSSXSDX........", // 17
-            ".......XLLSXSSSSSSSSXSSDX.......", // 18
-            ".......XLSSXSSSSSSSSXSSDX.......", // 19
-            ".......XLSSXDDDDDDDDXSSDX.......", // 20
-            ".......XLSXXXXXXXXXXXXSDX.......", // 21
-            "........XXX.XSSSSSSX.XXX........", // 22
-            "............XSSSSSSX............", // 23
-            "...........XSSSSSSSSX...........", // 24
-            "..........XSSSSSSSSSSX..........", // 25
-            "..........XSSSSSSSSSSX..........", // 26
-            "..........XSSDDXXDDSSX..........", // 27
-            ".........XSSDX....XDDDX.........", // 28
-            ".........XSSX......XDDX.........", // 29
-            "........XDDDX......XDDDX........", // 30
-            "........XXXXX......XXXXX........"  // 31
-        ];
-
-        for (let y = 0; y < 32; y++) {
-            for (let x = 0; x < 32; x++) {
-                pixelMap[y][x] = baseMatrix[y][x];
+    // 2. AI（MobileSAM）の初期化
+    async function initAI() {
+        try {
+            if (!segmenter) {
+                // 超高性能・軽量切り抜きAI「MobileSAM」を読み込む（約40MB）
+                segmenter = await pipeline('image-segmentation', 'Xenova/mobile_sam');
             }
+            status.innerHTML = '🎯 準備完了！<br>画像の中の<b>「抜きたい部分（服や刀）」をタップ</b>してね！';
+        } catch (err) {
+            status.innerText = 'AIの起動に失敗しました: ' + err.message;
         }
-        renderCanvas();
     }
 
+    // 3. 画像がタップ（クリック）されたときの切り抜き処理
+    srcImg.addEventListener('click', async (e) => {
+        if (!segmenter) return;
 
-        // 完成した完全対称設計図をキャンバスに描画
-        for (let y = 0; y < 32; y++) {
-            for (let x = 0; x < 32; x++) {
-                const char = fullMatrix[y][x];
-                if (colors[char]) {
-                    drawCtx.fillStyle = colors[char];
-                    drawCtx.fillRect(x, y, 1, 1);
+        status.innerText = '⚡ タップされた場所を解析中...';
+
+        // スマホ画面上のタップ位置を、画像の「実際のピクセル座標」に変換する計算
+        const rect = srcImg.getBoundingClientRect();
+        const clickX = (e.clientX - rect.left) * (srcImg.naturalWidth / rect.width);
+        const clickY = (e.clientY - rect.top) * (srcImg.naturalHeight / rect.height);
+
+        try {
+            // AI（SAM）に画像とタップした座標を渡してマスク（型）を作らせる
+            const result = await segmenter(srcImg.src, {
+                points: [[clickX, clickY]],
+                point_labels: [1] // 1は「ここを抜き出して」という意味
+            });
+
+            if (result && result.length > 0) {
+                const mask = result[0].mask; // AIが作った型（白黒画像データ）
+
+                // キャンバスのサイズを元の画像ぴったりに合わせる
+                canvas.width = srcImg.naturalWidth;
+                canvas.height = srcImg.naturalHeight;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // 元の画像を一旦別の見えないキャンバスに描画して、色情報を取得
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(srcImg, 0, 0);
+                const imgData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // AIのマスクサイズを元画像サイズに合わせて引き伸ばす処理
+                const maskCanvas = document.createElement('canvas');
+                maskCanvas.width = mask.width;
+                maskCanvas.height = mask.height;
+                const maskCtx = maskCanvas.getContext('2d');
+                maskCtx.putImageData(mask, 0, 0);
+
+                // メインキャンバスに一度マスクを描画してサイズを合わせる
+                ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+                const resizedMaskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // 【型抜き実行】マスクが塗られている場所だけ、元画像の色をコピーする
+                const outData = ctx.createImageData(canvas.width, canvas.height);
+                for (let i = 0; i < imgData.data.length; i += 4) {
+                    // マスクの不透明度が一定以上の場所＝AIが「対象物」と認めた場所
+                    if (resizedMaskData.data[i + 3] > 10) {
+                        outData.data[i] = imgData.data[i];     // 赤
+                        outData.data[i+1] = imgData.data[i+1]; // 緑
+                        outData.data[i+2] = imgData.data[i+2]; // 青
+                        outData.data[i+3] = imgData.data[i+3]; // 不透明度
+                    } else {
+                        outData.data[i+3] = 0; // それ以外は完全に透明にする
+                    }
                 }
+                // 完成した画像をキャンバスに反映
+                ctx.putImageData(outData, 0, 0);
+
+                // 画面の表示を切り替え
+                srcImg.style.display = 'none';
+                canvas.style.display = 'block';
+                saveBtn.style.display = 'block';
+                status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選び直してね。';
             }
+        } catch (err) {
+            status.innerText = '解析エラーが発生しました。別の場所をタップするか、画像を小さくしてください。';
+            console.error(err);
         }
-        
-        // ジョイント位置（右手・左手）を完全に枠に固定
-        drawCtx.fillStyle = colors['S'];
-        drawCtx.fillRect(8, 21, 1, 1);  // 右手
-        drawCtx.fillRect(23, 21, 1, 1); // 左手
-    }
+    });
+
+    // 4. 保存ボタンが押されたときの処理
+    saveBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'cut_out_parts.png'; // 透過PNGとして保存
+        link.href = canvas.toDataURL();
+        link.click();
+    });
 </script>
 
 </body>
