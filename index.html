@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIピンポイント切り抜き（MobileSAM）</title>
+    <title>AIピンポイント切り抜き（MobileSAM最新版）</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -24,7 +24,6 @@
         h1 { font-size: 22px; margin-bottom: 5px; }
         .subtitle { font-size: 12px; color: #86868b; margin-bottom: 20px; }
         
-        /* ボタン・入力エリアの装飾 */
         .file-select-btn {
             background: #0071e3;
             color: white;
@@ -37,7 +36,6 @@
         }
         input[type="file"] { display: none; }
         
-        /* ローディング表示 */
         #status {
             display: none;
             background: #e8e8ed;
@@ -48,7 +46,6 @@
             font-weight: 500;
         }
 
-        /* 画像表示エリア */
         #stage {
             position: relative;
             margin-top: 15px;
@@ -68,7 +65,7 @@
             max-width: 100%;
             height: auto;
             display: none;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="10" height="10" fill="%23eee"/><rect x="10" y="10" width="10" height="10" fill="%23eee"/></svg>'); /* 透明背景の市松模様 */
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="10" height="10" fill="%23eee"/><rect x="10" y="10" width="10" height="10" fill="%23eee"/></svg>');
         }
 
         .save-btn {
@@ -90,7 +87,7 @@
 
 <div class="container">
     <h1>AIピンポイント切り抜き</h1>
-    <div class="subtitle">画像をタップした場所（服や刀）を自動抽出</div>
+    <div class="subtitle">最新のHugging Face公式システムで起動</div>
 
     <label class="file-select-btn">
         画像を選択する
@@ -108,9 +105,9 @@
 </div>
 
 <script type="module">
-    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
     
-    // AIのモデルファイルをインターネット（CDN）から直接読み込む設定
+    // リモートサーバー（Hugging Face）から直接モデルをダウンロードする設定
     env.allowLocalModels = false;
 
     const fileInput = document.getElementById('file-input');
@@ -122,7 +119,6 @@
 
     let segmenter = null;
 
-    // 1. 画像が選択されたときの処理
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -135,54 +131,48 @@
             saveBtn.style.display = 'none';
             
             status.style.display = 'block';
-            status.innerHTML = '🔮 AIを起動しています...<br>(初回のみダウンロードに15秒ほどかかります)';
+            status.innerHTML = '🔮 最新AIをダウンロード中...<br>(初回のみ15秒ほどかかります)';
             
-            // 画像が画面に表示されたら、AIの準備を開始
             srcImg.onload = initAI;
         };
         reader.readAsDataURL(file);
     });
 
-    // 2. AI（MobileSAM）の初期化
     async function initAI() {
         try {
             if (!segmenter) {
-                // 超高性能・軽量切り抜きAI「MobileSAM」を読み込む（約40MB）
+                // 最新の環境で安定して動くMobileSAMを指定
                 segmenter = await pipeline('image-segmentation', 'Xenova/mobile_sam');
             }
-            status.innerHTML = '🎯 準備完了！<br>画像の中の<b>「抜きたい部分（服や刀）」をタップ</b>してね！';
+            status.innerHTML = '🎯 準備完了！<br>画像の中の<b>「抜きたい部分」をタップ</b>してね！';
         } catch (err) {
             status.innerText = 'AIの起動に失敗しました: ' + err.message;
+            console.error(err);
         }
     }
 
-    // 3. 画像がタップ（クリック）されたときの切り抜き処理
     srcImg.addEventListener('click', async (e) => {
         if (!segmenter) return;
 
-        status.innerText = '⚡ タップされた場所を解析中...';
+        status.innerText = '⚡ タップ位置を最新AIで解析中...';
 
-        // スマホ画面上のタップ位置を、画像の「実際のピクセル座標」に変換する計算
         const rect = srcImg.getBoundingClientRect();
         const clickX = (e.clientX - rect.left) * (srcImg.naturalWidth / rect.width);
         const clickY = (e.clientY - rect.top) * (srcImg.naturalHeight / rect.height);
 
         try {
-            // AI（SAM）に画像とタップした座標を渡してマスク（型）を作らせる
             const result = await segmenter(srcImg.src, {
                 points: [[clickX, clickY]],
-                point_labels: [1] // 1は「ここを抜き出して」という意味
+                point_labels: [1]
             });
 
             if (result && result.length > 0) {
-                const mask = result[0].mask; // AIが作った型（白黒画像データ）
+                const mask = result[0].mask;
 
-                // キャンバスのサイズを元の画像ぴったりに合わせる
                 canvas.width = srcImg.naturalWidth;
                 canvas.height = srcImg.naturalHeight;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // 元の画像を一旦別の見えないキャンバスに描画して、色情報を取得
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = canvas.width;
                 tempCanvas.height = canvas.height;
@@ -190,49 +180,42 @@
                 tempCtx.drawImage(srcImg, 0, 0);
                 const imgData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-                // AIのマスクサイズを元画像サイズに合わせて引き伸ばす処理
                 const maskCanvas = document.createElement('canvas');
                 maskCanvas.width = mask.width;
                 maskCanvas.height = mask.height;
                 const maskCtx = maskCanvas.getContext('2d');
                 maskCtx.putImageData(mask, 0, 0);
 
-                // メインキャンバスに一度マスクを描画してサイズを合わせる
                 ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
                 const resizedMaskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 
-                // 【型抜き実行】マスクが塗られている場所だけ、元画像の色をコピーする
                 const outData = ctx.createImageData(canvas.width, canvas.height);
                 for (let i = 0; i < imgData.data.length; i += 4) {
-                    // マスクの不透明度が一定以上の場所＝AIが「対象物」と認めた場所
                     if (resizedMaskData.data[i + 3] > 10) {
-                        outData.data[i] = imgData.data[i];     // 赤
-                        outData.data[i+1] = imgData.data[i+1]; // 緑
-                        outData.data[i+2] = imgData.data[i+2]; // 青
-                        outData.data[i+3] = imgData.data[i+3]; // 不透明度
+                        outData.data[i] = imgData.data[i];
+                        outData.data[i+1] = imgData.data[i+1];
+                        outData.data[i+2] = imgData.data[i+2];
+                        outData.data[i+3] = imgData.data[i+3];
                     } else {
-                        outData.data[i+3] = 0; // それ以外は完全に透明にする
+                        outData.data[i+3] = 0;
                     }
                 }
-                // 完成した画像をキャンバスに反映
                 ctx.putImageData(outData, 0, 0);
 
-                // 画面の表示を切り替え
                 srcImg.style.display = 'none';
                 canvas.style.display = 'block';
                 saveBtn.style.display = 'block';
-                status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選び直してね。';
+                status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選んでね。';
             }
         } catch (err) {
-            status.innerText = '解析エラーが発生しました。別の場所をタップするか、画像を小さくしてください。';
+            status.innerText = '解析エラーが発生しました。最新のライブラリでも処理できない画像形式の可能性があります。';
             console.error(err);
         }
     });
 
-    // 4. 保存ボタンが押されたときの処理
     saveBtn.addEventListener('click', () => {
         const link = document.createElement('a');
-        link.download = 'cut_out_parts.png'; // 透過PNGとして保存
+        link.download = 'cut_out_parts.png';
         link.href = canvas.toDataURL();
         link.click();
     });
