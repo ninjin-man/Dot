@@ -2,137 +2,91 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>32x32 高機能素体作成エディター</title>
+    <title>32x32 素体作成エディター（完全対称・自動生成）</title>
     <style>
         body {
             background-color: #2c2c2c;
             color: white;
             font-family: sans-serif;
             text-align: center;
-            padding: 10px;
+            padding: 20px;
             user-select: none;
-            margin: 0;
         }
         .editor-wrapper {
             display: inline-block;
             background-color: #3a3a3a;
-            padding: 15px;
+            padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            max-width: 100%;
-            box-sizing: border-box;
         }
         .canvas-container {
             position: relative;
-            width: 320px;
-            height: 320px;
-            margin: 0 auto 15px auto;
+            width: 512px;
+            height: 512px;
+            margin: 0 auto 20px auto;
             border: 2px solid #555;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="10" height="10" fill="%23ccc"/><rect x="10" y="10" width="10" height="10" fill="%23ccc"/><rect x="10" width="10" height="10" fill="%23fff"/><rect y="10" width="10" height="10" fill="%23fff"/></svg>');
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="%23ccc"/><rect x="16" y="16" width="16" height="16" fill="%23ccc"/><rect x="16" width="16" height="16" fill="%23fff"/><rect y="16" width="16" height="16" fill="%23fff"/></svg>');
             cursor: crosshair;
-        }
-        @media(min-width: 600px) {
-            .canvas-container { width: 480px; height: 480px; }
         }
         canvas {
             position: absolute;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 512px; height: 512px;
             image-rendering: pixelated;
         }
-        #guideCanvas { pointer-events: none; opacity: 0.6; }
+        #guideCanvas { pointer-events: none; opacity: 0.8; }
         
-        .color-pickers {
-            display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;
-            font-size: 12px; background: #2a2a2a; padding: 10px; border-radius: 6px;
-        }
-        .picker-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .picker-group input { cursor: pointer; width: 40px; height: 30px; border: none; background: transparent; }
-
-        .palette-container {
-            margin-bottom: 15px;
-            background: #2a2a2a;
-            padding: 10px;
-            border-radius: 6px;
-        }
-        .palette-title { font-size: 12px; color: #aaa; margin-bottom: 8px; }
-        .palette { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+        .palette { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .color-btn {
-            width: 36px; height: 36px;
-            border: 3px solid transparent; border-radius: 50%;
+            width: 40px; height: 40px;
+            border: 3px solid transparent; border-radius: 4px;
             cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .color-btn.active { border-color: #fff; transform: scale(1.1); }
-        .eraser-btn { background: repeating-linear-gradient(45deg, #ccc, #ccc 4px, #fff 4px, #fff 8px); border-radius: 4px; }
+        .eraser-btn { background: repeating-linear-gradient(45deg, #ccc, #ccc 5px, #fff 5px, #fff 10px); }
         
-        .btn-group { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
         button.action-btn {
             background-color: #4CAF50; color: white; border: none;
-            padding: 10px 18px; font-size: 14px; font-weight: bold;
-            border-radius: 4px; cursor: pointer;
+            padding: 12px 24px; font-size: 16px; font-weight: bold;
+            border-radius: 4px; cursor: pointer; margin: 0 5px;
         }
         button.action-btn:hover { background-color: #45a049; }
         button.clear-btn { background-color: #e74c3c; }
         button.clear-btn:hover { background-color: #c0392b; }
-        button.magic-btn { background-color: #9b59b6; box-shadow: 0 0 8px #9b59b6; }
+        button.magic-btn { background-color: #9b59b6; box-shadow: 0 0 10px #9b59b6; }
         button.magic-btn:hover { background-color: #8e44ad; }
         
-        .info { font-size: 12px; color: #aaa; margin-top: 15px; line-height: 1.6; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto; }
+        .info { font-size: 14px; color: #aaa; margin-top: 15px; line-height: 1.6; text-align: left; display: inline-block; }
     </style>
 </head>
 <body>
 
 <div class="editor-wrapper">
-    <h2>32×32 正面素体完成エディター</h2>
+    <h2>32×32 素体作成キャンバス</h2>
     
-    <div class="color-pickers">
-        <div class="picker-group">
-            <label>肌(ベース)</label>
-            <input type="color" id="picker-S" value="#e8b080">
-        </div>
-        <div class="picker-group">
-            <label>肌(影)</label>
-            <input type="color" id="picker-D" value="#c07850">
-        </div>
-        <div class="picker-group">
-            <label>肌(光)</label>
-            <input type="color" id="picker-H" value="#f8d8b8">
-        </div>
-        <div class="picker-group">
-            <label>主線/目</label>
-            <input type="color" id="picker-X" value="#1a1a1a">
-        </div>
+    <div class="palette" id="palette">
+        <div class="color-btn active" style="background-color: #1a1a1a;" data-color="#1a1a1a" title="黒（主線・目）"></div>
+        <div class="color-btn" style="background-color: #f8d8b8;" data-color="#f8d8b8" title="肌（ハイライト）"></div>
+        <div class="color-btn" style="background-color: #e8b080;" data-color="#e8b080" title="肌（ベース）"></div>
+        <div class="color-btn" style="background-color: #c07850;" data-color="#c07850" title="肌（影）"></div>
+        <div class="color-btn eraser-btn" data-color="erase" title="消しゴム（透明）"></div>
     </div>
 
-    <div class="palette-container">
-        <div class="palette-title">🎨 描く色を選択（選んでからキャンバスをなぞる）</div>
-        <div class="palette" id="palette">
-            <div class="color-btn active" id="btn-X" data-id="X" title="主線"></div>
-            <div class="color-btn" id="btn-H" data-id="H" title="肌（光）"></div>
-            <div class="color-btn" id="btn-S" data-id="S" title="肌ベース"></div>
-            <div class="color-btn" id="btn-D" data-id="D" title="肌影"></div>
-            <div class="color-btn eraser-btn" data-id="." title="消しゴム"></div>
-        </div>
-    </div>
-
-    <div class="canvas-container" id="canvasContainer">
+    <div class="canvas-container">
         <canvas id="drawCanvas" width="32" height="32"></canvas>
         <canvas id="guideCanvas" width="512" height="512"></canvas>
     </div>
 
-    <div class="btn-group">
-        <button class="action-btn magic-btn" onclick="autoGenerateBase()">✨ 素体を自動生成</button>
+    <div>
+        <button class="action-btn magic-btn" onclick="autoGenerateBase()">✨ 素体を自動生成する</button>
         <button class="action-btn clear-btn" onclick="clearCanvas()">全消去</button>
-        <button class="action-btn" onclick="saveImage()">PNG保存</button>
+        <button class="action-btn" onclick="saveImage()">PNGで保存する</button>
     </div>
 
     <div class="info">
-        <strong>💡 今回作った仕組み（バグ修正と進化）</strong><br>
-        ・<b>完璧なデッサン：</b>頭の歪みや腕の分解を直し、綺麗な2.5頭身のシレン風素体に設計図（データ）を差し替えました。<br>
-        ・<b>一括カラー変更：</b>上のカラーピッカーの色をいじると、自動生成された素体の色が一瞬で<b>一括自動変更</b>されます。<br>
-        ・<b>手動修正：</b>パレットで色を選べば、スマホのタップやドラッグで1ドットずつ上書き・修正が確実にできます。<br>
-        ・<b>両手ガイド枠：</b>赤枠（右手：剣位置）と青枠（左手：盾位置）に完璧に手のドットが重なるように自動配置されます。
+        <strong>【アップデート内容】</strong><br>
+        ・ご提案の<b>「左半分を右側に反転展開するプログラム」</b>を実装し、ドットの歪みを100%解消しました。<br>
+        ・手のジョイント位置（赤枠・青枠）を中央から等間隔、かつ同じ高さ（Y=21）に統一し、完全に対称化しました。
     </div>
 </div>
 
@@ -141,174 +95,151 @@
     const drawCtx = drawCanvas.getContext('2d');
     const guideCanvas = document.getElementById('guideCanvas');
     const guideCtx = guideCanvas.getContext('2d');
-    const canvasContainer = document.getElementById('canvasContainer');
-    
-    // カラーマップ（色の管理用）
-    const colorMap = {
-        'X': '#1a1a1a', 'H': '#f8d8b8', 'S': '#e8b080', 'D': '#c07850', 'E': '#1a1a1a', '.': null
-    };
-
-    // 32x32のピクセルデータマップ（文字で管理）
-    let pixelMap = Array(32).fill(null).map(() => Array(32).fill('.'));
-    let currentColorId = 'X';
+    const SCALE = 16;
+    let currentColor = '#1a1a1a';
     let isDrawing = false;
 
-    // ピッカーとパレット・カラーマップの動的同期
-    const pickers = {
-        'X': document.getElementById('picker-X'),
-        'H': document.getElementById('picker-H'),
-        'S': document.getElementById('picker-S'),
-        'D': document.getElementById('picker-D')
-    };
-
-    function updatePaletteColors() {
-        for (let id in pickers) {
-            colorMap[id] = pickers[id].value;
-            const btn = document.getElementById(`btn-${id}`);
-            if (btn) btn.style.backgroundColor = pickers[id].value;
-        }
-        colorMap['E'] = pickers['X'].value; // 目は主線と連動
-        renderCanvas();
-    }
-
-    for (let id in pickers) {
-        pickers[id].addEventListener('input', updatePaletteColors);
-    }
-
-    // パレットのボタン選択（スマホでも確実に動く記述に変更）
+    // パレット処理
     const colorBtns = document.querySelectorAll('.color-btn');
     colorBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', (e) => {
             colorBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentColorId = this.getAttribute('data-id');
+            e.target.classList.add('active');
+            currentColor = e.target.getAttribute('data-color');
         });
     });
 
-    // ガイド線・ジョイント枠描画
+    // ガイド線描画（完全左右対称に修正）
     function drawGuides() {
-        const gScale = 512 / 32;
         guideCtx.clearRect(0, 0, 512, 512);
-        guideCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        guideCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         guideCtx.lineWidth = 1;
         for(let i = 0; i <= 32; i++) {
-            guideCtx.beginPath(); guideCtx.moveTo(i * gScale, 0); guideCtx.lineTo(i * gScale, 512);
-            guideCtx.moveTo(0, i * gScale); guideCtx.lineTo(512, i * gScale); guideCtx.stroke();
+            guideCtx.beginPath(); guideCtx.moveTo(i * SCALE, 0); guideCtx.lineTo(i * SCALE, 512);
+            guideCtx.moveTo(0, i * SCALE); guideCtx.lineTo(512, i * SCALE); guideCtx.stroke();
         }
-        // 右手（赤枠） X=8, Y=21
-        guideCtx.strokeStyle = '#ff6b6b'; guideCtx.lineWidth = 2;
-        guideCtx.strokeRect(8 * gScale, 21 * gScale, gScale, gScale);
-        // 左手（青枠） X=24, Y=20
-        guideCtx.strokeStyle = '#4dabf7';
-        guideCtx.strokeRect(24 * gScale, 20 * gScale, gScale, gScale);
+        guideCtx.strokeStyle = 'rgba(255, 215, 0, 0.6)'; guideCtx.setLineDash([4, 4]);
+        [2, 16, 26].forEach(y => {
+            guideCtx.beginPath(); guideCtx.moveTo(0, y * SCALE); guideCtx.lineTo(512, y * SCALE); guideCtx.stroke();
+        });
+        guideCtx.setLineDash([]);
+        guideCtx.lineWidth = 2;
+        
+        // 右手（赤）: X=8, Y=21
+        guideCtx.strokeStyle = '#ff6b6b'; guideCtx.strokeRect(8 * SCALE, 21 * SCALE, SCALE, SCALE);
+        // 左手（青）: X=23, Y=21 (右から9マス目。これで完全に対称)
+        guideCtx.strokeStyle = '#4dabf7'; guideCtx.strokeRect(23 * SCALE, 21 * SCALE, SCALE, SCALE);
     }
     drawGuides();
 
-    // キャンバスのレンダリング
-    function renderCanvas() {
-        drawCtx.clearRect(0, 0, 32, 32);
-        for (let y = 0; y < 32; y++) {
-            for (let x = 0; x < 32; x++) {
-                const id = pixelMap[y][x];
-                if (colorMap[id]) {
-                    drawCtx.fillStyle = colorMap[id];
-                    drawCtx.fillRect(x, y, 1, 1);
-                }
-            }
+    // 描画処理
+    function paint(e) {
+        if (!isDrawing) return;
+        const rect = drawCanvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / SCALE);
+        const y = Math.floor((e.clientY - rect.top) / SCALE);
+        if (x < 0 || x >= 32 || y < 0 || y >= 32) return;
+        if (currentColor === 'erase') {
+            drawCtx.clearRect(x, y, 1, 1);
+        } else {
+            drawCtx.fillStyle = currentColor;
+            drawCtx.fillRect(x, y, 1, 1);
         }
     }
 
-    // 描画座標計算（レスポンシブ・スマホのズレを完全修正）
-    function getCanvasCoords(e) {
-        const rect = canvasContainer.getBoundingClientRect();
-        const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
-        const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
-        
-        const x = Math.floor(((clientX - rect.left) / rect.width) * 32);
-        const y = Math.floor(((clientY - rect.top) / rect.height) * 32);
-        return { x, y };
-    }
-
-    function paint(e) {
-        if (!isDrawing) return;
-        const { x, y } = getCanvasCoords(e);
-        if (x < 0 || x >= 32 || y < 0 || y >= 32) return;
-        
-        pixelMap[y][x] = currentColorId;
-        renderCanvas();
-    }
-
-    // マウスイベント
-    canvasContainer.addEventListener('mousedown', (e) => { isDrawing = true; paint(e); });
-    canvasContainer.addEventListener('mousemove', paint);
+    drawCanvas.addEventListener('mousedown', (e) => { isDrawing = true; paint(e); });
+    drawCanvas.addEventListener('mousemove', paint);
     window.addEventListener('mouseup', () => { isDrawing = false; });
-
-    // タッチイベント（スクロールを防止して確実にドットを打つ）
-    canvasContainer.addEventListener('touchstart', (e) => { isDrawing = true; paint(e); e.preventDefault(); }, { passive: false });
-    canvasContainer.addEventListener('touchmove', (e) => { paint(e); e.preventDefault(); }, { passive: false });
+    drawCanvas.addEventListener('touchstart', (e) => { isDrawing = true; e.preventDefault(); paint(e.touches[0]); });
+    drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); paint(e.touches[0]); });
     window.addEventListener('touchend', () => { isDrawing = false; });
 
     function clearCanvas() {
-        if(confirm('本当にすべて消去しますか？')) {
-            pixelMap = Array(32).fill(null).map(() => Array(32).fill('.'));
-            renderCanvas();
-        }
+        if(confirm('本当にすべて消去しますか？')) drawCtx.clearRect(0, 0, 32, 32);
     }
 
     function saveImage() {
         const link = document.createElement('a');
-        link.download = 'perfect_front_base.png';
+        link.download = 'perfect_base_body.png';
         link.href = drawCanvas.toDataURL('image/png');
         link.click();
     }
 
-    // ★ 完璧にデッサンを修正した32x32シレン風正面立ち絵データ
+    // ★ 新・左右対称自動生成ロジック
     function autoGenerateBase() {
-        const baseMatrix = [
-            "................................",
-            "................................",
-            "............XXXXXXXX............",
-            "..........XXHHHHHHHHXX..........",
-            "........XXHHHHHHHHHHHHXX........",
-            ".......XHHHHHHHHHHHHHHHHX.......",
-            "......XHHHHHHHHHHHHHHHHHHX......",
-            "......XHHHHHSSSSSSHHHHHHHX......",
-            ".....XHHHHHSSSSSSSSHHHHHHHX.....",
-            ".....XHHHHSSSSSSSSSSHHHHHHX.....",
-            ".....XHHHSSEESSSSEESSHHHHHX.....",
-            ".....XHHHSSSSSSSSSSSSHHHHHX.....",
-            "......XHHHSSSSDDSSSSHHHHHX......",
-            "......XDDHHSSSSSSSSHHHDDX.......",
-            ".......XDDXXXXXXXXXXDDDX........",
-            "........XXXXXDDDDXXXXXX.........",
-            "............XSSSSX..............",
-            "..........XXSSSSSSXX............",
-            "........XXSSSSSSSSSSXX..........",
-            ".......XSSSSSSSSSSSSSSX.........",
-            "........XSSX..XSSSSSSX..XSSX....",
-            "........XSSX..XSSSSSSX..XSSX....",
-            "........XXXX..XDDDDDDX..XXXX....",
-            "..............XSSSSSSX..........",
-            ".............XSSSSSSSSX.........",
-            ".............XSSXXXXSSX.........",
-            "............XSSX....XSSX........",
-            "............XSSX....XSSX........",
-            "...........XDDX......XDDX.......",
-            "...........XDDX......XDDX.......",
-            "...........XXXX......XXXX.......",
-            "................................"
+        drawCtx.clearRect(0, 0, 32, 32);
+        
+        const colors = {
+            'X': '#1a1a1a', // 主線
+            'L': '#f8d8b8', // ハイライト
+            'S': '#e8b080', // 肌ベース
+            'D': '#c07850', // 影
+            'E': '#000000', // 目
+            '.': null       // 透明
+        };
+
+        // 【設計図の左半分（16マス分）だけを定義】
+        // 右端（15マス目）がキャラクターのジャスト中心線になります。
+        const halfMatrix = [
+            "................", // 0
+            "................", // 1
+            "............XXXX", // 2  (頭頂部)
+            "..........XXLLLL", // 3
+            "........XXLLLLLL", // 4
+            ".......XLLLLLLLL", // 5
+            "......XLLLLLLLLL", // 6
+            ".....XLLSSSSSSSS", // 7  (額)
+            "....XLLSSSSSSSSS", // 8
+            "....XLSSSSSEESSS", // 9  (目：中央から2マス離した絶妙な配置)
+            "....XLSSSSSSSSSS", // 10
+            ".....XLSSSSSSSSS", // 11
+            "......XLSSSSSSSS", // 12
+            ".......XDDDDDDDD", // 13 (顎の影)
+            "........XXXXXXXX", // 14 (首元)
+            "........X...XXXX", // 15 (肩・腕の付け根)
+            "........XSX.XSSS", // 16 (腕と胴体。間に空間を開けてスッキリ化)
+            "........XSX.XSSS", // 17
+            "........XSX.XSSS", // 18
+            "........XSX.XDDX", // 19 (わき腹の影)
+            "........XSX..XSS", // 20
+            ".......XSX..XXXX", // 21 (手：8マス目が「S」、その両隣が主線「X」)
+            ".......XXX......", // 22 (手の底の主線)
+            "............XSSS", // 23 (ここから下半身)
+            "...........XSSSS", // 24
+            "...........XSSX.", // 25 (股下の分かれ目：展開すると中央2マスが空く)
+            "..........XSSX..", // 26 (足脚)
+            "..........XSSX..", // 27
+            ".........XSSX...", // 28
+            "........XDDX....", // 29 (足元の影)
+            "........XXXX....", // 30 (足の裏)
+            "................"  // 31
         ];
 
+        // ループ処理で左半分を反転させて右半分をドッキングし、32マスの完全なデータを作る
+        let fullMatrix = [];
+        for (let y = 0; y < 32; y++) {
+            let leftRow = halfMatrix[y];
+            // 文字列を配列にしてリバースし、右半分の文字列を作成
+            let rightRow = leftRow.split('').reverse().join('');
+            fullMatrix.push(leftRow + rightRow);
+        }
+
+        // 完成した完全対称設計図をキャンバスに描画
         for (let y = 0; y < 32; y++) {
             for (let x = 0; x < 32; x++) {
-                pixelMap[y][x] = baseMatrix[y][x];
+                const char = fullMatrix[y][x];
+                if (colors[char]) {
+                    drawCtx.fillStyle = colors[char];
+                    drawCtx.fillRect(x, y, 1, 1);
+                }
             }
         }
-        renderCanvas();
+        
+        // ジョイント位置（右手・左手）を完全に枠に固定
+        drawCtx.fillStyle = colors['S'];
+        drawCtx.fillRect(8, 21, 1, 1);  // 右手
+        drawCtx.fillRect(23, 21, 1, 1); // 左手
     }
-
-    // 初期起動時のカラー同期
-    updatePaletteColors();
 </script>
 
 </body>
