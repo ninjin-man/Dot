@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIピンポイント切り抜き（MobileSAM最新版）</title>
+    <title>AIピンポイント切り抜き（Google安定版）</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -87,7 +87,7 @@
 
 <div class="container">
     <h1>AIピンポイント切り抜き</h1>
-    <div class="subtitle">最新のHugging Face公式システムで起動</div>
+    <div class="subtitle">Google MediaPipe 安定システムで動作中</div>
 
     <label class="file-select-btn">
         画像を選択する
@@ -105,10 +105,7 @@
 </div>
 
 <script type="module">
-    import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
-    
-    // リモートサーバー（Hugging Face）から直接モデルをダウンロードする設定
-    env.allowLocalModels = false;
+    import { InteractiveSegmenter, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
     const fileInput = document.getElementById('file-input');
     const status = document.getElementById('status');
@@ -117,7 +114,7 @@
     const ctx = canvas.getContext('2d');
     const saveBtn = document.getElementById('save-btn');
 
-    let segmenter = null;
+    let interactiveSegmenter = null;
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -131,84 +128,114 @@
             saveBtn.style.display = 'none';
             
             status.style.display = 'block';
-            status.innerHTML = '🔮 最新AIをダウンロード中...<br>(初回のみ15秒ほどかかります)';
+            status.innerHTML = '🔮 Google公式AIを起動中...<br>(数秒で終わります)';
             
             srcImg.onload = initAI;
         };
         reader.readAsDataURL(file);
     });
 
+    // Googleのサーバーから軽量ピンポイント切り抜きAIを読み込む
     async function initAI() {
         try {
-            if (!segmenter) {
-                // 最新の環境で安定して動くMobileSAMを指定
-                segmenter = await pipeline('image-segmentation', 'Xenova/mobile_sam');
+            if (!interactiveSegmenter) {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+                );
+                interactiveSegmenter = await InteractiveSegmenter.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite",
+                        delegate: "GPU"
+                    },
+                    outputCategoryMask: true,
+                    outputConfidenceMask: false
+                });
             }
-            status.innerHTML = '🎯 準備完了！<br>画像の中の<b>「抜きたい部分」をタップ</b>してね！';
+            status.innerHTML = '🎯 準備完了！<br>イラストの<b>「抜きたい部分（服や武器）」をタップ</b>してね！';
         } catch (err) {
             status.innerText = 'AIの起動に失敗しました: ' + err.message;
             console.error(err);
         }
     }
 
+    // タップされた場所の型抜きを実行
     srcImg.addEventListener('click', async (e) => {
-        if (!segmenter) return;
+        if (!interactiveSegmenter) return;
 
-        status.innerText = '⚡ タップ位置を最新AIで解析中...';
+        status.innerText = '⚡ タップ位置を解析中...';
 
         const rect = srcImg.getBoundingClientRect();
-        const clickX = (e.clientX - rect.left) * (srcImg.naturalWidth / rect.width);
-        const clickY = (e.clientY - rect.top) * (srcImg.naturalHeight / rect.height);
+        // Google AI用に座標を0.0〜1.0の割合に変換
+        const clickXNormal = (e.clientX - rect.left) / rect.width;
+        const clickYNormal = (e.clientY - rect.top) / rect.height;
 
         try {
-            const result = await segmenter(srcImg.src, {
-                points: [[clickX, clickY]],
-                point_labels: [1]
+            // AIに画像を渡し、タップした座標を認識させる
+            const result = interactiveSegmenter.segment(srcImg, {
+                keypoint: { x: clickXNormal, y: clickYNormal }
             });
 
-            if (result && result.length > 0) {
-                const mask = result[0].mask;
+            const mask = result.categoryMask;
+            const maskWidth = mask.width;
+            const maskHeight = mask.height;
+            const maskData = mask.getAsUint8Array(); // 0（背景）か、それ以外（対象物）が入った配列
 
-                canvas.width = srcImg.naturalWidth;
-                canvas.height = srcImg.naturalHeight;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // キャンバスサイズを元画像に合わせる
+            canvas.width = srcImg.naturalWidth;
+            canvas.height = srcImg.naturalHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCtx.drawImage(srcImg, 0, 0);
-                const imgData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+            // 元画像のピクセルデータを取得
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(srcImg, 0, 0);
+            const imgData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
 
-                const maskCanvas = document.createElement('canvas');
-                maskCanvas.width = mask.width;
-                maskCanvas.height = mask.height;
-                const maskCtx = maskCanvas.getContext('2d');
-                maskCtx.putImageData(mask, 0, 0);
+            const outData = ctx.createImageData(canvas.width, canvas.height);
 
-                ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
-                const resizedMaskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                const outData = ctx.createImageData(canvas.width, canvas.height);
-                for (let i = 0; i < imgData.data.length; i += 4) {
-                    if (resizedMaskData.data[i + 3] > 10) {
-                        outData.data[i] = imgData.data[i];
-                        outData.data[i+1] = imgData.data[i+1];
-                        outData.data[i+2] = imgData.data[i+2];
-                        outData.data[i+3] = imgData.data[i+3];
-                    } else {
-                        outData.data[i+3] = 0;
-                    }
-                }
-                ctx.putImageData(outData, 0, 0);
+            // AIが作ったマスクを画像化する
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = maskWidth;
+            maskCanvas.height = maskHeight;
+            const maskCtx = maskCanvas.getContext('2d');
+            const maskImgData = maskCtx.createImageData(maskWidth, maskHeight);
 
-                srcImg.style.display = 'none';
-                canvas.style.display = 'block';
-                saveBtn.style.display = 'block';
-                status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選んでね。';
+            for (let i = 0; i < maskData.length; i++) {
+                const idx = i * 4;
+                const val = maskData[i] > 0 ? 255 : 0;
+                maskImgData.data[idx] = val;
+                maskImgData.data[idx+1] = val;
+                maskImgData.data[idx+2] = val;
+                maskImgData.data[idx+3] = val;
             }
+            maskCtx.putImageData(maskImgData, 0, 0);
+
+            // 元画像のサイズにマスクを引き伸ばして重ねる
+            ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+            const resizedMaskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // 型抜き：マスクが白い場所だけ元画像の色を残す
+            for (let i = 0; i < imgData.data.length; i += 4) {
+                if (resizedMaskData.data[i] > 128) {
+                    outData.data[i] = imgData.data[i];
+                    outData.data[i+1] = imgData.data[i+1];
+                    outData.data[i+2] = imgData.data[i+2];
+                    outData.data[i+3] = imgData.data[i+3];
+                } else {
+                    outData.data[i+3] = 0; // 透明化
+                }
+            }
+            ctx.putImageData(outData, 0, 0);
+
+            srcImg.style.display = 'none';
+            canvas.style.display = 'block';
+            saveBtn.style.display = 'block';
+            status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選んでね。';
+
         } catch (err) {
-            status.innerText = '解析エラーが発生しました。最新のライブラリでも処理できない画像形式の可能性があります。';
+            status.innerText = '解析エラーが発生しました。';
             console.error(err);
         }
     });
