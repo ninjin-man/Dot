@@ -1,461 +1,237 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>素体ジェネレーター｜シレン風ドット絵</title>
-<style>
-  :root{
-    --paper:#efe9d8;
-    --ink:#2b2620;
-    --line:#c9bfa3;
-    --accent:#7a5c2e;
-    --accent2:#9c3b2e;
-    --panel:#f7f3e8;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--paper); color:var(--ink);
-    font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
-    -webkit-text-size-adjust:100%;
-  }
-  header{
-    padding:18px 16px 14px; border-bottom:2px solid var(--line);
-    background:var(--panel);
-  }
-  h1{ font-size:18px; margin:0 0 2px; letter-spacing:.04em; }
-  header p{ margin:0; font-size:12px; color:#7a7160; }
-
-  .wrap{ max-width:520px; margin:0 auto; padding:16px; }
-
-  .stage{
-    display:flex; flex-direction:column; align-items:center;
-    gap:10px; margin-bottom:18px;
-  }
-  canvas#preview{
-    image-rendering:pixelated; image-rendering:crisp-edges;
-    width:256px; height:256px;
-    background:
-      repeating-conic-gradient(#ded6bf 0% 25%, #e9e2cc 0% 50%) 0 / 24px 24px;
-    border:2px solid var(--line); border-radius:6px;
-    box-shadow:0 6px 16px rgba(0,0,0,.12);
-  }
-  .seed{ font-size:11px; color:#9a917d; font-variant-numeric:tabular-nums; }
-
-  .controls{ display:flex; flex-direction:column; gap:14px; }
-  .row{
-    background:var(--panel); border:1px solid var(--line); border-radius:6px;
-    padding:12px 14px;
-  }
-  .row label{ display:block; font-size:13px; font-weight:600; margin-bottom:8px; }
-  .val{ float:right; font-weight:400; color:#8a8068; font-variant-numeric:tabular-nums; }
-
-  input[type=range]{ width:100%; accent-color:var(--accent); height:24px; }
-
-  .swatches{ display:flex; flex-wrap:wrap; gap:8px; }
-  .sw{
-    width:34px; height:34px; border-radius:50%; border:2px solid rgba(0,0,0,.15);
-    cursor:pointer; padding:0;
-  }
-  .sw.on{ border-color:var(--ink); box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink); }
-
-  .seg{ display:flex; gap:6px; flex-wrap:wrap; }
-  .seg button{
-    flex:1 1 auto; min-width:70px; padding:9px 6px; font-size:13px;
-    background:#fff; color:var(--ink); border:1px solid var(--line);
-    border-radius:5px; cursor:pointer;
-  }
-  .seg button.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
-
-  .actions{ display:flex; gap:10px; margin-top:4px; }
-  .actions button{
-    flex:1; padding:14px 8px; font-size:15px; font-weight:700;
-    border:none; border-radius:6px; cursor:pointer; letter-spacing:.03em;
-  }
-  #randomBtn{ background:#5c5142; color:#fff; }
-  #saveBtn{ background:var(--accent2); color:#fff; }
-  .hint{ font-size:11.5px; color:#8a8068; margin-top:10px; line-height:1.7; }
-  .hint code{ background:#e6dec8; padding:1px 5px; border-radius:3px; }
-</style>
+    <meta charset="UTF-8">
+    <title>32x32 素体作成エディター（自動生成機能付き）</title>
+    <style>
+        body {
+            background-color: #2c2c2c;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+            user-select: none;
+        }
+        .editor-wrapper {
+            display: inline-block;
+            background-color: #3a3a3a;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .canvas-container {
+            position: relative;
+            width: 512px;
+            height: 512px;
+            margin: 0 auto 20px auto;
+            border: 2px solid #555;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="16" height="16" fill="%23ccc"/><rect x="16" y="16" width="16" height="16" fill="%23ccc"/><rect x="16" width="16" height="16" fill="%23fff"/><rect y="16" width="16" height="16" fill="%23fff"/></svg>');
+            cursor: crosshair;
+        }
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 512px; height: 512px;
+            image-rendering: pixelated;
+        }
+        #guideCanvas { pointer-events: none; opacity: 0.8; }
+        
+        .palette { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .color-btn {
+            width: 40px; height: 40px;
+            border: 3px solid transparent; border-radius: 4px;
+            cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .color-btn.active { border-color: #fff; transform: scale(1.1); }
+        .eraser-btn { background: repeating-linear-gradient(45deg, #ccc, #ccc 5px, #fff 5px, #fff 10px); }
+        
+        button.action-btn {
+            background-color: #4CAF50; color: white; border: none;
+            padding: 12px 24px; font-size: 16px; font-weight: bold;
+            border-radius: 4px; cursor: pointer; margin: 0 5px;
+        }
+        button.action-btn:hover { background-color: #45a049; }
+        button.clear-btn { background-color: #e74c3c; }
+        button.clear-btn:hover { background-color: #c0392b; }
+        button.magic-btn { background-color: #9b59b6; box-shadow: 0 0 10px #9b59b6; }
+        button.magic-btn:hover { background-color: #8e44ad; }
+        
+        .info { font-size: 14px; color: #aaa; margin-top: 15px; line-height: 1.6; text-align: left; display: inline-block; }
+    </style>
 </head>
 <body>
-<header>
-  <h1>素体ジェネレーター</h1>
-  <p>顔・体・手足を自動で描く。色と体型を選んで、透過PNGで書き出す。</p>
-</header>
 
-<div class="wrap">
-  <div class="stage">
-    <canvas id="preview" width="32" height="32"></canvas>
-    <div class="seed" id="seedLabel"></div>
-  </div>
-
-  <div class="controls">
-
-    <div class="row">
-      <label>肌の色</label>
-      <div class="swatches" id="skinSwatches"></div>
+<div class="editor-wrapper">
+    <h2>32×32 素体作成キャンバス</h2>
+    
+    <div class="palette" id="palette">
+        <div class="color-btn active" style="background-color: #1a1a1a;" data-color="#1a1a1a" title="黒（主線・目）"></div>
+        <div class="color-btn" style="background-color: #f8d8b8;" data-color="#f8d8b8" title="肌（ハイライト）"></div>
+        <div class="color-btn" style="background-color: #e8b080;" data-color="#e8b080" title="肌（ベース）"></div>
+        <div class="color-btn" style="background-color: #c07850;" data-color="#c07850" title="肌（影）"></div>
+        <div class="color-btn eraser-btn" data-color="erase" title="消しゴム（透明）"></div>
     </div>
 
-    <div class="row">
-      <label>体型 <span class="val" id="buildVal"></span></label>
-      <input type="range" id="build" min="0" max="100" value="45">
+    <div class="canvas-container">
+        <canvas id="drawCanvas" width="32" height="32"></canvas>
+        <canvas id="guideCanvas" width="512" height="512"></canvas>
     </div>
 
-    <div class="row">
-      <label>身長（頭身バランス） <span class="val" id="heightVal"></span></label>
-      <input type="range" id="heightP" min="0" max="100" value="50">
+    <div>
+        <button class="action-btn magic-btn" onclick="autoGenerateBase()">✨ 素体を自動生成する</button>
+        <button class="action-btn clear-btn" onclick="clearCanvas()">全消去</button>
+        <button class="action-btn" onclick="saveImage()">PNGで保存する</button>
     </div>
 
-    <div class="row">
-      <label>目の形</label>
-      <div class="seg" id="eyeSeg">
-        <button data-v="dot" class="on">点目</button>
-        <button data-v="calm">おだやか</button>
-        <button data-v="sharp">鋭い</button>
-      </div>
+    <div class="info">
+        <strong>【使い方】</strong><br>
+        1. 「素体を自動生成する」ボタンを押すと、AIの知識ベースから理想的な素体が入力されます。<br>
+        2. 気に入らない部分があれば、パレットの色を選んで手作業で修正できます。<br>
+        3. 完成したら「PNGで保存」し、大切に保管してください。
     </div>
-
-    <div class="row">
-      <label>髪の色（前髪・もみあげ）</label>
-      <div class="swatches" id="hairSwatches"></div>
-    </div>
-
-    <div class="actions">
-      <button id="randomBtn">ランダム</button>
-      <button id="saveBtn">PNG保存</button>
-    </div>
-
-    <div class="hint">
-      ・出力は <code>32×32</code> の透過PNG。合成ツールと位置が揃います。<br>
-      ・iPhoneは保存できないときプレビュー画像を<b>長押し→写真に保存</b>でもOK。<br>
-      ・髪・目・体型の組み合わせで色違いを無限に量産できます。
-    </div>
-  </div>
 </div>
 
 <script>
-// ============================================================
-//  素体プロシージャル生成（32x32, 3階調＋セレクティブアウトライン）
-// ============================================================
+    const drawCanvas = document.getElementById('drawCanvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    const guideCanvas = document.getElementById('guideCanvas');
+    const guideCtx = guideCanvas.getContext('2d');
+    const SCALE = 16;
+    let currentColor = '#1a1a1a';
+    let isDrawing = false;
 
-const SIZE = 32;
-const cv = document.getElementById('preview');
-const ctx = cv.getContext('2d');
-ctx.imageSmoothingEnabled = false;
+    // パレット処理
+    const colorBtns = document.querySelectorAll('.color-btn');
+    colorBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            colorBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentColor = e.target.getAttribute('data-color');
+        });
+    });
 
-// ---- 状態 ----
-const state = {
-  skin: '#f1c79e',
-  hair: '#3a2a1c',
-  build: 45,     // 0=細い 100=がっしり
-  height: 50,    // 0=低頭身 100=高頭身
-  eye: 'dot',
-  seed: 1
-};
-
-// ---- パレット候補 ----
-const SKINS = ['#f4d3b0','#f1c79e','#e8b489','#d89c6e','#c07e50','#9c5f38','#7a4a2c'];
-const HAIRS = ['#2b2018','#3a2a1c','#5a3c1e','#7a4a1e','#9c6b2e','#1c2230','#52504e','#b5453a'];
-
-// ---- 色ユーティリティ ----
-function hexToRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
-function rgbToHex(r,g,b){ const c=v=>('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); return '#'+c(r)+c(g)+c(b); }
-function shade(hex, amt){ // amt: -1暗く 〜 +1明るく
-  const [r,g,b]=hexToRgb(hex);
-  if(amt>=0){ return rgbToHex(r+(255-r)*amt*0.85, g+(255-g)*amt*0.85, b+(255-b)*amt*0.85); }
-  return rgbToHex(r*(1+amt), g*(1+amt), b*(1+amt));
-}
-
-// ---- ピクセルバッファ ----
-function blankGrid(){
-  const g = new Array(SIZE);
-  for(let y=0;y<SIZE;y++){ g[y]=new Array(SIZE).fill(null); }
-  return g;
-}
-function set(g,x,y,c){ if(x>=0&&x<SIZE&&y>=0&&y<SIZE) g[y][x]=c; }
-// 楕円フィル（中心cx,cy 半径rx,ry）
-function ellipse(g,cx,cy,rx,ry,c){
-  for(let y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++){
-    for(let x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){
-      const dx=(x-cx)/rx, dy=(y-cy)/ry;
-      if(dx*dx+dy*dy<=1) set(g,x,y,c);
+    // ガイド線描画
+    function drawGuides() {
+        guideCtx.clearRect(0, 0, 512, 512);
+        guideCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        guideCtx.lineWidth = 1;
+        for(let i = 0; i <= 32; i++) {
+            guideCtx.beginPath(); guideCtx.moveTo(i * SCALE, 0); guideCtx.lineTo(i * SCALE, 512);
+            guideCtx.moveTo(0, i * SCALE); guideCtx.lineTo(512, i * SCALE); guideCtx.stroke();
+        }
+        guideCtx.strokeStyle = 'rgba(255, 215, 0, 0.6)'; guideCtx.setLineDash([4, 4]);
+        [2, 16, 26].forEach(y => {
+            guideCtx.beginPath(); guideCtx.moveTo(0, y * SCALE); guideCtx.lineTo(512, y * SCALE); guideCtx.stroke();
+        });
+        guideCtx.setLineDash([]);
+        guideCtx.lineWidth = 2;
+        // 右手（赤）
+        guideCtx.strokeStyle = '#ff6b6b'; guideCtx.strokeRect(8 * SCALE, 22 * SCALE, SCALE, SCALE);
+        // 左手（青）
+        guideCtx.strokeStyle = '#4dabf7'; guideCtx.strokeRect(24 * SCALE, 20 * SCALE, SCALE, SCALE);
     }
-  }
-}
-function rect(g,x0,y0,w,h,c){
-  for(let y=y0;y<y0+h;y++) for(let x=x0;x<x0+w;x++) set(g,x,y,c);
-}
+    drawGuides();
 
-// ---- 簡易乱数（seedで再現性） ----
-function mulberry(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-
-// ============================================================
-//  素体を描く
-// ============================================================
-function buildBody(st){
-  const g = blankGrid();
-
-  const skin = st.skin;
-  const skinHi = shade(skin, 0.35);
-  const skinSh = shade(skin, -0.30);
-  const skinLn = shade(skin, -0.55);   // アウトライン（黒ベタにしない）
-
-  const hair = st.hair;
-  const hairHi = shade(hair, 0.30);
-  const hairSh = shade(hair, -0.35);
-
-  // パラメータ → 寸法
-  const b = st.build/100;              // 体格
-  const h = st.height/100;             // 頭身
-  const headR = 5 + (1-h)*1.2;         // 頭の半径（低頭身ほど頭大）
-  const headCx = 16, headCy = 8 - h*1.0;
-  const bodyW = 7 + b*4;               // 胴の幅
-  const bodyTop = headCy + headR + 1;
-  const bodyH = 9 + h*2;
-
-  // ---- 脚 ----
-  const legTop = bodyTop + bodyH - 1;
-  const legW = 2 + Math.round(b*1.2);
-  const legGap = 1 + Math.round(b*0.5);
-  const legLen = 5 + Math.round(h*2);
-  // 左脚
-  rect(g, headCx-legGap-legW, legTop, legW, legLen, skin);
-  // 右脚
-  rect(g, headCx+legGap, legTop, legW, legLen, skin);
-  // 足先（濃い色＝足袋/靴）
-  const shoe = shade(skin,-0.62);
-  rect(g, headCx-legGap-legW, legTop+legLen-1, legW, 1, shoe);
-  rect(g, headCx+legGap, legTop+legLen-1, legW, 1, shoe);
-
-  // ---- 胴 ----
-  ellipse(g, headCx, bodyTop+bodyH/2-1, bodyW/2, bodyH/2, skin);
-  rect(g, Math.round(headCx-bodyW/2), Math.round(bodyTop), Math.round(bodyW), Math.round(bodyH-2), skin);
-
-  // ---- 腕 ----
-  const armLen = 6 + Math.round(h*2);
-  const armW = 2 + Math.round(b*1.0);
-  const armY = bodyTop+1;
-  rect(g, Math.round(headCx-bodyW/2-armW+1), armY, armW, armLen, skin); // 左腕
-  rect(g, Math.round(headCx+bodyW/2-1), armY, armW, armLen, skin);      // 右腕
-  // 手先（少し明るく）
-  rect(g, Math.round(headCx-bodyW/2-armW+1), armY+armLen-1, armW, 1, skinHi);
-  rect(g, Math.round(headCx+bodyW/2-1), armY+armLen-1, armW, 1, skinHi);
-
-  // ---- 頭 ----
-  ellipse(g, headCx, headCy, headR, headR*1.05, skin);
-
-  // ---- 顔の陰影：右下を影、左上をハイライト ----
-  shadeFace(g, skin, skinHi, skinSh);
-
-  // ---- 髪（前髪・サイド） ----
-  drawHair(g, headCx, headCy, headR, hair, hairHi, hairSh);
-
-  // ---- 目 ----
-  drawEyes(g, headCx, headCy, headR, st.eye);
-
-  // ---- 胴と手足にも軽く陰影 ----
-  bodyShading(g, skin, skinHi, skinSh, headCx);
-
-  // ---- セレクティブアウトライン（輪郭だけ暗い肌色で囲う） ----
-  outline(g, skinLn);
-
-  return g;
-}
-
-// 顔の球面陰影
-function shadeFace(g, skin, hi, sh){
-  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
-    if(g[y][x]===skin){
-      // 上下左右に肌が続いていれば内部
-      const up = g[y-1] && g[y-1][x];
-      const dn = g[y+1] && g[y+1][x];
-      const lf = g[y][x-1];
-      const rt = g[y][x+1];
-      if(up===skin&&lf===skin && (x<16||y<8)) { /* 左上側 */ }
+    // 描画処理
+    function paint(e) {
+        if (!isDrawing) return;
+        const rect = drawCanvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / SCALE);
+        const y = Math.floor((e.clientY - rect.top) / SCALE);
+        if (x < 0 || x >= 32 || y < 0 || y >= 32) return;
+        if (currentColor === 'erase') {
+            drawCtx.clearRect(x, y, 1, 1);
+        } else {
+            drawCtx.fillStyle = currentColor;
+            drawCtx.fillRect(x, y, 1, 1);
+        }
     }
-  }
-}
 
-// 髪
-function drawHair(g, cx, cy, r, hair, hi, sh){
-  const top = Math.round(cy-r);
-  // 頭頂〜額の前髪
-  for(let y=top; y<=cy; y++){
-    for(let x=Math.round(cx-r); x<=Math.round(cx+r); x++){
-      const dx=(x-cx)/r, dy=(y-cy)/(r*1.05);
-      if(dx*dx+dy*dy<=1){
-        // 額より上、または毛束が前に垂れる位置
-        const fringe = (y < cy-0.5) || (Math.abs(x-cx)>r*0.55 && y<cy+0.8);
-        if(fringe) g[y][x] = hair;
-      }
+    drawCanvas.addEventListener('mousedown', (e) => { isDrawing = true; paint(e); });
+    drawCanvas.addEventListener('mousemove', paint);
+    window.addEventListener('mouseup', () => { isDrawing = false; });
+    drawCanvas.addEventListener('touchstart', (e) => { isDrawing = true; e.preventDefault(); paint(e.touches[0]); });
+    drawCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); paint(e.touches[0]); });
+    window.addEventListener('touchend', () => { isDrawing = false; });
+
+    function clearCanvas() {
+        if(confirm('本当にすべて消去しますか？')) drawCtx.clearRect(0, 0, 32, 32);
     }
-  }
-  // もみあげ
-  for(let y=Math.round(cy-r*0.2); y<=Math.round(cy+r*0.6); y++){
-    g[y] && (g[y][Math.round(cx-r)]   = hair);
-    g[y] && (g[y][Math.round(cx-r)+1] = hair);
-    g[y] && (g[y][Math.round(cx+r)]   = hair);
-    g[y] && (g[y][Math.round(cx+r)-1] = hair);
-  }
-  // 髪ハイライト（左上の毛束）
-  for(let y=top; y<=top+2; y++){
-    for(let x=Math.round(cx-r*0.5); x<=Math.round(cx); x++){
-      if(g[y] && g[y][x]===hair) g[y][x]=hi;
+
+    function saveImage() {
+        const link = document.createElement('a');
+        link.download = 'base_body.png';
+        link.href = drawCanvas.toDataURL('image/png');
+        link.click();
     }
-  }
-  // 髪の影（右下）
-  for(let y=Math.round(cy-1); y<=Math.round(cy); y++){
-    for(let x=Math.round(cx+r*0.3); x<=Math.round(cx+r); x++){
-      if(g[y] && g[y][x]===hair) g[y][x]=sh;
+
+    // ★素体自動生成ロジック
+    function autoGenerateBase() {
+        drawCtx.clearRect(0, 0, 32, 32);
+        
+        // 色の定義
+        const colors = {
+            'X': '#1a1a1a', // 主線
+            'L': '#f8d8b8', // ハイライト
+            'S': '#e8b080', // 肌ベース
+            'D': '#c07850', // 影
+            'E': '#000000', // 目
+            '.': null       // 透明
+        };
+
+        // 32x32の完璧なシレン風プロポーション設計図
+        const baseMatrix = [
+            "................................",
+            "................................",
+            ".............XXXXXX.............",
+            "...........XXLLLLLLXX...........",
+            "..........XLLLLLLLLLLX..........",
+            ".........XLLSLLLLLLLLSX.........",
+            ".........XLLSLLLLLLLLSX.........",
+            "........XLLSLLLLLLLLLLSX........",
+            "........XLSLLLLLLLLLLLLSX.......",
+            "........XLSSSESSSSESSLLSX.......",
+            "........XLSSSSSSSSSSSSLSX.......",
+            "........XLSSSSSDSSSSSSLSX.......",
+            ".........XLSSSSSSSSSSSLX........",
+            ".........XDDSSSSSSSSSDDX........",
+            "..........XXDDDDDDDDDXX.........",
+            "............XXXXXXX.............",
+            "...........XXSSSSSXX............",
+            "..........XSXSSSSSXSX...........",
+            ".........XSXDDSSSDDXSX..........",
+            "........XSXDDSSSSSDDXSX.........",
+            "........XXXDDSSSSSSSDDXX........",
+            ".......XSSX.DDSSSSSSSD.XSX......",
+            ".......XXXX.DDSSSSSSSD.XSX......",
+            "............DDSSSSSSSD.XXX......",
+            "..........XXXXXXXXXXXXX.........",
+            "..........XSSSSSSSSSSSX.........",
+            "...........XSSX...XSSX..........",
+            "..........XSSX.....XSSX.........",
+            "..........XSSX.....XSSX.........",
+            ".........XDDX.......XDDX........",
+            ".........XXXX.......XXXX........",
+            "................................"
+        ];
+
+        // 設計図をキャンバスに描画
+        for (let y = 0; y < 32; y++) {
+            for (let x = 0; x < 32; x++) {
+                const char = baseMatrix[y][x];
+                if (colors[char]) {
+                    drawCtx.fillStyle = colors[char];
+                    drawCtx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+        
+        // ジョイント位置（右手・左手）を強制的に確実に描画して枠に合わせる
+        drawCtx.fillStyle = colors['S'];
+        drawCtx.fillRect(8, 22, 1, 1); // 右手(剣)
+        drawCtx.fillRect(24, 20, 1, 1); // 左手(盾)
     }
-  }
-}
-
-// 目
-function drawEyes(g, cx, cy, r, type){
-  const ey = Math.round(cy+0.5);
-  const exL = Math.round(cx-r*0.45);
-  const exR = Math.round(cx+r*0.45)-1;
-  const eye = '#231a14';
-  const white = '#fbf3e6';
-  function put(x){
-    if(type==='dot'){
-      set(g,x,ey,eye);
-      set(g,x,ey+1,eye);
-    } else if(type==='calm'){
-      set(g,x,ey,white); set(g,x+ (x<cx?0:0),ey,white);
-      set(g,x,ey,eye);
-      set(g,x,ey-0,eye);
-      set(g,x, ey, eye);
-    } else if(type==='sharp'){
-      set(g,x,ey,eye);
-      set(g, x + (x<cx?1:-1), ey-1, eye);
-    }
-  }
-  // 点目/鋭い目
-  if(type==='dot'){
-    rect(g,exL,ey,1,2,eye); rect(g,exR,ey,1,2,eye);
-  } else if(type==='calm'){
-    rect(g,exL-1,ey,3,1,'#fbf3e6'); rect(g,exR-1,ey,3,1,'#fbf3e6');
-    set(g,exL,ey,eye); set(g,exR,ey,eye);
-    set(g,exL,ey-1,'#fbf3e6'); set(g,exR,ey-1,'#fbf3e6');
-  } else { // sharp
-    set(g,exL,ey,eye); set(g,exL+1,ey-1,eye);
-    set(g,exR,ey,eye); set(g,exR-1,ey-1,eye);
-    set(g,exL,ey+1,eye); set(g,exR,ey+1,eye);
-  }
-}
-
-// 胴・手足のシンプル陰影
-function bodyShading(g, skin, hi, sh, cx){
-  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
-    if(g[y][x]===skin){
-      const lf = g[y][x-1];
-      const rt = g[y][x+1];
-      // 左端っぽい → ハイライト、右端っぽい → 影
-      if(lf===null || lf===undefined){ if(x<cx) g[y][x]=hi; }
-      else if(rt===null || rt===undefined){ if(x>cx) g[y][x]=sh; }
-    }
-  }
-}
-
-// セレクティブアウトライン
-function outline(g, lineColor){
-  const add=[];
-  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
-    if(g[y][x]===null){
-      const n = (g[y-1]&&g[y-1][x]) || (g[y+1]&&g[y+1][x]) || g[y][x-1] || g[y][x+1];
-      if(n) add.push([x,y]);
-    }
-  }
-  for(const [x,y] of add) g[y][x]=lineColor;
-}
-
-// ============================================================
-//  描画
-// ============================================================
-function render(){
-  const g = buildBody(state);
-  ctx.clearRect(0,0,SIZE,SIZE);
-  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
-    if(g[y][x]){ ctx.fillStyle=g[y][x]; ctx.fillRect(x,y,1,1); }
-  }
-  document.getElementById('seedLabel').textContent =
-    `体型 ${state.build} / 頭身 ${state.height} / 目 ${state.eye}`;
-}
-
-// ============================================================
-//  UI構築
-// ============================================================
-function buildSwatches(containerId, colors, key){
-  const c = document.getElementById(containerId);
-  colors.forEach((col,i)=>{
-    const b=document.createElement('button');
-    b.className='sw'+(state[key]===col?' on':'');
-    b.style.background=col;
-    b.onclick=()=>{
-      state[key]=col;
-      [...c.children].forEach(ch=>ch.classList.remove('on'));
-      b.classList.add('on'); render();
-    };
-    c.appendChild(b);
-  });
-}
-buildSwatches('skinSwatches', SKINS, 'skin');
-buildSwatches('hairSwatches', HAIRS, 'hair');
-
-const buildEl=document.getElementById('build');
-const heightEl=document.getElementById('heightP');
-const buildVal=document.getElementById('buildVal');
-const heightVal=document.getElementById('heightVal');
-function labelBuild(v){ return v<33?'細い':v<66?'標準':'がっしり'; }
-function labelHeight(v){ return v<33?'2頭身寄り':v<66?'標準':'スマート'; }
-buildEl.oninput=()=>{ state.build=+buildEl.value; buildVal.textContent=labelBuild(state.build); render(); };
-heightEl.oninput=()=>{ state.height=+heightEl.value; heightVal.textContent=labelHeight(state.height); render(); };
-buildVal.textContent=labelBuild(state.build);
-heightVal.textContent=labelHeight(state.height);
-
-document.querySelectorAll('#eyeSeg button').forEach(btn=>{
-  btn.onclick=()=>{
-    state.eye=btn.dataset.v;
-    document.querySelectorAll('#eyeSeg button').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on'); render();
-  };
-});
-
-// ランダム
-document.getElementById('randomBtn').onclick=()=>{
-  const rnd=Math.random;
-  state.skin=SKINS[Math.floor(rnd()*SKINS.length)];
-  state.hair=HAIRS[Math.floor(rnd()*HAIRS.length)];
-  state.build=Math.floor(rnd()*101);
-  state.height=Math.floor(rnd()*101);
-  state.eye=['dot','calm','sharp'][Math.floor(rnd()*3)];
-  // UI反映
-  buildEl.value=state.build; heightEl.value=state.height;
-  buildVal.textContent=labelBuild(state.build);
-  heightVal.textContent=labelHeight(state.height);
-  document.querySelectorAll('#skinSwatches .sw').forEach(s=>s.classList.toggle('on', s.style.background===rgbCss(state.skin)));
-  document.querySelectorAll('#hairSwatches .sw').forEach(s=>s.classList.toggle('on', s.style.background===rgbCss(state.hair)));
-  document.querySelectorAll('#eyeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.v===state.eye));
-  render();
-};
-function rgbCss(hex){ const [r,g,b]=hexToRgb(hex); return `rgb(${r}, ${g}, ${b})`; }
-
-// PNG保存
-document.getElementById('saveBtn').onclick=()=>{
-  cv.toBlob(blob=>{
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const name=`body_${state.build}_${state.height}_${state.eye}.png`;
-    a.href=url; a.download=name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-  },'image/png');
-};
-
-render();
 </script>
+
 </body>
 </html>
