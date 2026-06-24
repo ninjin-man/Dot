@@ -1,252 +1,52 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIピンポイント切り抜き（Google安定版）</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background: #f5f5f7;
-            color: #1d1d1f;
-            margin: 0;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            padding: 24px;
-            border-radius: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-        }
-        h1 { font-size: 22px; margin-bottom: 5px; }
-        .subtitle { font-size: 12px; color: #86868b; margin-bottom: 20px; }
-        
-        .file-select-btn {
-            background: #0071e3;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            display: inline-block;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-        input[type="file"] { display: none; }
-        
-        #status {
-            display: none;
-            background: #e8e8ed;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 14px;
-            margin: 15px 0;
-            font-weight: 500;
-        }
-
-        #stage {
-            position: relative;
-            margin-top: 15px;
-            display: inline-block;
-            max-width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        #src-img {
-            display: block;
-            max-width: 100%;
-            height: auto;
-            cursor: crosshair;
-        }
-        #output-canvas {
-            max-width: 100%;
-            height: auto;
-            display: none;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="10" height="10" fill="%23eee"/><rect x="10" y="10" width="10" height="10" fill="%23eee"/></svg>');
-        }
-
-        .save-btn {
-            background: #34c759;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 16px;
-            margin-top: 20px;
-            display: none;
-            width: 100%;
-            cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase3 ドット絵合成ツール（分割版）</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="panels">
+<h2>Phase 3 ドット絵合成ツール</h2>
 
-<div class="container">
-    <h1>AIピンポイント切り抜き</h1>
-    <div class="subtitle">Google MediaPipe 安定システムで動作中</div>
-
-    <label class="file-select-btn">
-        画像を選択する
-        <input type="file" id="file-input" accept="image/*">
-    </label>
-
-    <div id="status">ここに案内が表示されます</div>
-
-    <div id="stage">
-        <img id="src-img" alt="選択された画像">
-        <canvas id="output-canvas"></canvas>
-    </div>
-
-    <button id="save-btn" class="save-btn">切り抜いたパーツを保存</button>
+<div class="preview-wrap">
+    <canvas id="mainCanvas" width="32" height="32"></canvas>
 </div>
 
-<script type="module">
-    import { InteractiveSegmenter, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+<div class="part-panel">
+    <span class="part-label">▶ 髪型</span>
+    <div class="part-options" id="opt-hair"></div>
+</div>
+<div class="part-panel">
+    <span class="part-label">▶ 服</span>
+    <div class="part-options" id="opt-clothes"></div>
+</div>
+<div class="part-panel">
+    <span class="part-label">▶ 武器（右手 X=8, Y=21）</span>
+    <div class="part-options" id="opt-weapon"></div>
+</div>
+<div class="part-panel">
+    <span class="part-label">▶ 盾（左手 X=23, Y=21）</span>
+    <div class="part-options" id="opt-shield"></div>
+</div>
 
-    const fileInput = document.getElementById('file-input');
-    const status = document.getElementById('status');
-    const srcImg = document.getElementById('src-img');
-    const canvas = document.getElementById('output-canvas');
-    const ctx = canvas.getContext('2d');
-    const saveBtn = document.getElementById('save-btn');
+<div class="btn-row">
+    <button class="btn-rand" onclick="randomize()">🎲 ランダム</button>
+    <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
+</div>
 
-    let interactiveSegmenter = null;
+<div class="info">
+    <span style="color:#aaa">見下ろし視点・コンパクト体型(実測ベース)</span><br>
+    <span style="color:#ff6b6b">■</span> 武器ジョイント X=8,Y=21&nbsp;
+    <span style="color:#4dabf7">■</span> 盾ジョイント X=23,Y=21
+</div>
+</div>
 
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            srcImg.src = event.target.result;
-            srcImg.style.display = 'block';
-            canvas.style.display = 'none';
-            saveBtn.style.display = 'none';
-            
-            status.style.display = 'block';
-            status.innerHTML = '🔮 Google公式AIを起動中...<br>(数秒で終わります)';
-            
-            srcImg.onload = initAI;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // Googleのサーバーから軽量ピンポイント切り抜きAIを読み込む
-    async function initAI() {
-        try {
-            if (!interactiveSegmenter) {
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-                );
-                interactiveSegmenter = await InteractiveSegmenter.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite",
-                        delegate: "GPU"
-                    },
-                    outputCategoryMask: true,
-                    outputConfidenceMask: false
-                });
-            }
-            status.innerHTML = '🎯 準備完了！<br>イラストの<b>「抜きたい部分（服や武器）」をタップ</b>してね！';
-        } catch (err) {
-            status.innerText = 'AIの起動に失敗しました: ' + err.message;
-            console.error(err);
-        }
-    }
-
-    // タップされた場所の型抜きを実行
-    srcImg.addEventListener('click', async (e) => {
-        if (!interactiveSegmenter) return;
-
-        status.innerText = '⚡ タップ位置を解析中...';
-
-        const rect = srcImg.getBoundingClientRect();
-        // Google AI用に座標を0.0〜1.0の割合に変換
-        const clickXNormal = (e.clientX - rect.left) / rect.width;
-        const clickYNormal = (e.clientY - rect.top) / rect.height;
-
-        try {
-            // AIに画像を渡し、タップした座標を認識させる
-            const result = interactiveSegmenter.segment(srcImg, {
-                keypoint: { x: clickXNormal, y: clickYNormal }
-            });
-
-            const mask = result.categoryMask;
-            const maskWidth = mask.width;
-            const maskHeight = mask.height;
-            const maskData = mask.getAsUint8Array(); // 0（背景）か、それ以外（対象物）が入った配列
-
-            // キャンバスサイズを元画像に合わせる
-            canvas.width = srcImg.naturalWidth;
-            canvas.height = srcImg.naturalHeight;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 元画像のピクセルデータを取得
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(srcImg, 0, 0);
-            const imgData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
-
-            const outData = ctx.createImageData(canvas.width, canvas.height);
-
-            // AIが作ったマスクを画像化する
-            const maskCanvas = document.createElement('canvas');
-            maskCanvas.width = maskWidth;
-            maskCanvas.height = maskHeight;
-            const maskCtx = maskCanvas.getContext('2d');
-            const maskImgData = maskCtx.createImageData(maskWidth, maskHeight);
-
-            for (let i = 0; i < maskData.length; i++) {
-                const idx = i * 4;
-                const val = maskData[i] > 0 ? 255 : 0;
-                maskImgData.data[idx] = val;
-                maskImgData.data[idx+1] = val;
-                maskImgData.data[idx+2] = val;
-                maskImgData.data[idx+3] = val;
-            }
-            maskCtx.putImageData(maskImgData, 0, 0);
-
-            // 元画像のサイズにマスクを引き伸ばして重ねる
-            ctx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
-            const resizedMaskData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-            // 型抜き：マスクが白い場所だけ元画像の色を残す
-            for (let i = 0; i < imgData.data.length; i += 4) {
-                if (resizedMaskData.data[i] > 128) {
-                    outData.data[i] = imgData.data[i];
-                    outData.data[i+1] = imgData.data[i+1];
-                    outData.data[i+2] = imgData.data[i+2];
-                    outData.data[i+3] = imgData.data[i+3];
-                } else {
-                    outData.data[i+3] = 0; // 透明化
-                }
-            }
-            ctx.putImageData(outData, 0, 0);
-
-            srcImg.style.display = 'none';
-            canvas.style.display = 'block';
-            saveBtn.style.display = 'block';
-            status.innerHTML = '✨ 切り抜き成功！<br>別の場所を試したい場合は、もう一度画像を選んでね。';
-
-        } catch (err) {
-            status.innerText = '解析エラーが発生しました。';
-            console.error(err);
-        }
-    });
-
-    saveBtn.addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = 'cut_out_parts.png';
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-</script>
-
+<!-- 読み込み順: base→parts→config→engine（依存関係順） -->
+<script src="js/base.js"></script>
+<script src="js/parts.js"></script>
+<script src="js/config.js"></script>
+<script src="js/engine.js"></script>
 </body>
 </html>
