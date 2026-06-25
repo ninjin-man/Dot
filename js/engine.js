@@ -1,6 +1,8 @@
 'use strict';
 /* === エンジン（描画・UI・ランダム・PNG保存）=========================
-   基本は触らない。BC/BM/PARTS/SEL/ORDER を使って合成・描画する。
+   CATEGORIES（config.js）の配列だけを見て動く。
+   カテゴリが増減してもこのファイルは触らなくてよい。
+   描画順 = CATEGORIES の並び順（先頭ほど奥＝先に描く）。
 =================================================================== */
 function drawBase(ctx){
   for(let y=0;y<32;y++){
@@ -16,52 +18,73 @@ function drawPart(ctx,pxArr){
   for(const[x,y,c] of pxArr){ctx.fillStyle=c;ctx.fillRect(x,y,1,1);}
 }
 
+// ov: {id:index} で一時上書き。指定なければ SEL を使う。
 function render(ctx, ov={}){
   ctx.clearRect(0,0,32,32);
   drawBase(ctx);
-  for(const cat of ORDER){
-    const idx = ov[cat]!==undefined ? ov[cat] : SEL[cat];
-    const pt = PARTS[cat][idx];
+  for(const cat of CATEGORIES){               // 配列順 = 重ね順
+    const idx = ov[cat.id]!==undefined ? ov[cat.id] : SEL[cat.id];
+    const pt = cat.options[idx];
     if(pt) drawPart(ctx,pt.px);
   }
 }
 
-// サムネイル：素体 + そのパーツのみ
-function thumb(cat,idx){
+// サムネイル：素体 + そのカテゴリのパーツのみ（他は全部なし=0）
+function thumb(catId,idx){
   const c=document.createElement('canvas');
   c.width=c.height=32;
-  render(c.getContext('2d'),{hair:0,clothes:0,weapon:0,shield:0,[cat]:idx});
+  const ov={};
+  CATEGORIES.forEach(cc=>ov[cc.id]=0);   // 全カテゴリを「なし」に
+  ov[catId]=idx;                         // 対象だけ表示
+  render(c.getContext('2d'),ov);
   return c;
 }
 
 // ───────────────────────────────────────────
-//  UI 構築
+//  UI 自動生成（パネルもHTMLに書かず、ここで作る）
 // ───────────────────────────────────────────
 const mainCtx = document.getElementById('mainCanvas').getContext('2d');
+const panelRoot = document.getElementById('panelRoot');
 
 (function initUI(){
-  for(const cat of Object.keys(PARTS)){
-    const cont = document.getElementById('opt-'+cat);
-    PARTS[cat].forEach((pt,idx)=>{
-      const wrap = document.createElement('div');
-      wrap.className = 'part-option'+(idx===SEL[cat]?' active':'');
+  CATEGORIES.forEach(cat=>{
+    // パネル枠
+    const panel = document.createElement('div');
+    panel.className = 'part-panel';
 
-      const tc = thumb(cat,idx);
+    const label = document.createElement('span');
+    label.className = 'part-label';
+    label.textContent = '▶ ' + cat.label;
+    panel.appendChild(label);
+
+    const opts = document.createElement('div');
+    opts.className = 'part-options';
+    opts.id = 'opt-' + cat.id;
+    panel.appendChild(opts);
+
+    // 選択肢ボタン
+    cat.options.forEach((pt,idx)=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'part-option'+(idx===SEL[cat.id]?' active':'');
+
+      const tc = thumb(cat.id,idx);
       tc.style.cssText='width:64px;height:64px;image-rendering:pixelated;display:block;';
       wrap.appendChild(tc);
 
-      const label = document.createElement('span');
-      label.textContent = pt ? pt.name : 'なし';
-      wrap.appendChild(label);
+      const cap = document.createElement('span');
+      cap.textContent = pt ? pt.name : 'なし';
+      wrap.appendChild(cap);
 
       wrap.addEventListener('click',()=>{
-        SEL[cat]=idx;
-        cont.querySelectorAll('.part-option').forEach((el,i)=>el.classList.toggle('active',i===idx));
+        SEL[cat.id]=idx;
+        opts.querySelectorAll('.part-option').forEach((el,i)=>el.classList.toggle('active',i===idx));
         render(mainCtx);
       });
-      cont.appendChild(wrap);
+      opts.appendChild(wrap);
     });
-  }
+
+    panelRoot.appendChild(panel);
+  });
   render(mainCtx);
 })();
 
@@ -69,12 +92,12 @@ const mainCtx = document.getElementById('mainCanvas').getContext('2d');
 //  ランダム生成
 // ───────────────────────────────────────────
 function randomize(){
-  for(const cat of Object.keys(PARTS)){
-    SEL[cat]=Math.floor(Math.random()*PARTS[cat].length);
-    document.getElementById('opt-'+cat)
+  CATEGORIES.forEach(cat=>{
+    SEL[cat.id]=Math.floor(Math.random()*cat.options.length);
+    document.getElementById('opt-'+cat.id)
       .querySelectorAll('.part-option')
-      .forEach((el,i)=>el.classList.toggle('active',i===SEL[cat]));
-  }
+      .forEach((el,i)=>el.classList.toggle('active',i===SEL[cat.id]));
+  });
   render(mainCtx);
 }
 
