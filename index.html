@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phase3 ドット絵合成ツール（分割版）</title>
+<title>Phase3 ドット絵合成ツール（カテゴリ配列版）</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,22 +14,8 @@
     <canvas id="mainCanvas" width="32" height="32"></canvas>
 </div>
 
-<div class="part-panel">
-    <span class="part-label">▶ 髪型</span>
-    <div class="part-options" id="opt-hair"></div>
-</div>
-<div class="part-panel">
-    <span class="part-label">▶ 服</span>
-    <div class="part-options" id="opt-clothes"></div>
-</div>
-<div class="part-panel">
-    <span class="part-label">▶ 武器（右手 X=8, Y=21）</span>
-    <div class="part-options" id="opt-weapon"></div>
-</div>
-<div class="part-panel">
-    <span class="part-label">▶ 盾（左手 X=23, Y=21）</span>
-    <div class="part-options" id="opt-shield"></div>
-</div>
+<!-- パネルは engine.js が CATEGORIES から自動生成してここに入れる -->
+<div id="panelRoot"></div>
 
 <div class="btn-row">
     <button class="btn-rand" onclick="randomize()">🎲 ランダム</button>
