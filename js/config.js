@@ -19,6 +19,9 @@ const CATEGORIES = [
   { id:'shield',  label:'盾',   def:3,
     options:[null,{name:'木の盾',px:bShWood()},{name:'鉄の盾',px:bShIron()},{name:'鞘',px:bShScabbard()}] },
 
+  { id:'eyes',    label:'目',   def:1,
+    options:[null,{name:'点目',px:bEyeDot()},{name:'丸目',px:bEyeRound()},{name:'ジト目',px:bEyeJito()},{name:'閉じ目',px:bEyeClosed()}] },
+
   { id:'hair',    label:'髪型', def:4,
     options:[null,{name:'ショート\n（黒）',px:bHairShort()},{name:'ロング\n（茶）',px:bHairLong()},{name:'兜',px:bHelmet()},{name:'三度笠',px:bHatSandogasa()}] },
 
