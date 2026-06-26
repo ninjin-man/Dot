@@ -43,3 +43,13 @@ button:hover { opacity:.85; }
 .btn-save { background:#2a7ab8; }
 
 .info { font-size:10px; color:#555; margin-top:14px; line-height:1.9; text-align:left; max-width:380px; display:inline-block; }
+
+/* 色帯（髪・目の色選択） */
+.color-bar { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid #3a3a3a; }
+.color-swatch {
+  display:flex; gap:1px; padding:3px; border-radius:5px;
+  border:2px solid #444; background:#222; cursor:pointer;
+  transition:border-color .15s, box-shadow .15s;
+}
+.color-swatch .color-dot { width:7px; height:14px; border-radius:1px; display:block; }
+.color-swatch.active { border-color:#4dabf7; box-shadow:0 0 6px rgba(77,171,247,.5); }
