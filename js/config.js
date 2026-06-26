@@ -20,10 +20,18 @@ const CATEGORIES = [
     options:[null,{name:'木の盾',px:bShWood()},{name:'鉄の盾',px:bShIron()},{name:'鞘',px:bShScabbard()}] },
 
   { id:'eyes',    label:'目',   def:1,
-    options:[null,{name:'点目',px:bEyeDot()},{name:'丸目',px:bEyeRound()},{name:'ジト目',px:bEyeJito()},{name:'閉じ目',px:bEyeClosed()}] },
+    options:[null,
+      {name:'点目',px:bEyeMDot()},{name:'細目',px:bEyeMThin()},{name:'鋭い目',px:bEyeMSharp()},
+      {name:'半目',px:bEyeMCalm()},{name:'強い目',px:bEyeMStrong()},{name:'たれ目♂',px:bEyeMDroop()},
+      {name:'まる目',px:bEyeFRound()},{name:'ぱっちり',px:bEyeFBig()},{name:'まつ毛',px:bEyeFLash()},
+      {name:'たれ目♀',px:bEyeFDroop()},{name:'キリッ',px:bEyeFSharp()},{name:'ウインク',px:bEyeFWink()}] },
 
-  { id:'hair',    label:'髪型', def:4,
-    options:[null,{name:'ショート\n（黒）',px:bHairShort()},{name:'ロング\n（茶）',px:bHairLong()},{name:'兜',px:bHelmet()},{name:'三度笠',px:bHatSandogasa()}] },
+  { id:'hair',    label:'髪型', def:1,
+    options:[null,
+      {name:'短髪♂',px:bHairMShort()},{name:'ツンツン♂',px:bHairMSpiky()},{name:'七三♂',px:bHairMSide()},
+      {name:'オールバック♂',px:bHairMBack()},{name:'天パ♂',px:bHairMCurly()},{name:'前髪長め♂',px:bHairMLong()},
+      {name:'ロング♀',px:bHairFLong()},{name:'ツインテ♀',px:bHairFTwin()},{name:'ウェーブ♀',px:bHairFWavy()},
+      {name:'ボブ♀',px:bHairFBob()},{name:'お団子♀',px:bHairFBun()},{name:'サイドポニー♀',px:bHairFPony()}] },
 
   // ↓ カテゴリを増やすときはここに1行足すだけ。例：
   // { id:'eyes', label:'目', def:1, options:[null,{name:'丸目',px:bEyeRound()}] },
