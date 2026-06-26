@@ -31,15 +31,6 @@ const CATEGORIES = [
       {name:'革ブーツ',fn:bShoeBoot},{name:'鉄靴',fn:bShoeIron},{name:'布靴',fn:bShoeFlat},
       {name:'スニーカー',fn:bShoeSneaker}] },
 
-  { id:'eyes', label:'目', def:1, defCol:0,
-    options:[null,
-      {name:'標準♂',fn:bEyeMNormal},{name:'鋭い♂',fn:bEyeMSharp},{name:'強い♂',fn:bEyeMStrong},
-      {name:'冷静♂',fn:bEyeMCalm},{name:'たれ目♂',fn:bEyeMDroop},{name:'細目♂',fn:bEyeMNarrow},
-      {name:'丸目♀',fn:bEyeFRound},{name:'ぱっちり♀',fn:bEyeFBig},{name:'まつ毛♀',fn:bEyeFLash},
-      {name:'たれ目♀',fn:bEyeFDroop},{name:'凛♀',fn:bEyeFSharp},{name:'ウインク♀',fn:bEyeFWink}],
-    palettes:[EYE_BLUE, EYE_BROWN, EYE_GREEN, EYE_PURPLE, EYE_RED],
-    paletteNames:['青','茶','緑','紫','赤'] },
-
   { id:'hair', label:'髪型', def:1, defCol:1,
     options:[null,
       {name:'短髪♂',fn:bHairMShort},{name:'ツンツン♂',fn:bHairMSpiky},{name:'七三♂',fn:bHairMSide},
@@ -48,6 +39,16 @@ const CATEGORIES = [
       {name:'ボブ♀',fn:bHairFBob},{name:'お団子♀',fn:bHairFBun},{name:'サイドポニー♀',fn:bHairFPony}],
     palettes:[HAIR_BLACK, HAIR_BROWN, HAIR_GOLD, HAIR_BLUE, HAIR_PURPLE, HAIR_RED],
     paletteNames:['黒','茶','金','青','紫','赤'] },
+
+  // 顔（目+眉+鼻+口+頬）。髪より後＝最前面に描画し、眉が前髪に隠れないようにする。
+  { id:'eyes', label:'顔', def:1, defCol:0,
+    options:[null,
+      {name:'標準♂',fn:bEyeMNormal},{name:'鋭い♂',fn:bEyeMSharp},{name:'強い♂',fn:bEyeMStrong},
+      {name:'冷静♂',fn:bEyeMCalm},{name:'たれ目♂',fn:bEyeMDroop},{name:'細目♂',fn:bEyeMNarrow},
+      {name:'丸目♀',fn:bEyeFRound},{name:'ぱっちり♀',fn:bEyeFBig},{name:'まつ毛♀',fn:bEyeFLash},
+      {name:'たれ目♀',fn:bEyeFDroop},{name:'凛♀',fn:bEyeFSharp},{name:'ウインク♀',fn:bEyeFWink}],
+    palettes:[EYE_BLUE, EYE_BROWN, EYE_GREEN, EYE_PURPLE, EYE_RED],
+    paletteNames:['青','茶','緑','紫','赤'] },
 ];
 
 /* 派生データ（触らなくてよい）。SEL=形選択, SELCOL=色選択 */

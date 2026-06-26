@@ -11,7 +11,7 @@ const r = (...p) => p.map(([c,n]) => c.repeat(n)).join('');
 function hL(px,x1,x2,y,c){ for(let x=x1;x<=x2;x++) px.push([x,y,c]); }
 function vL(px,x,y1,y2,c){ for(let y=y1;y<=y2;y++) px.push([x,y,c]); }
 
-const BC={X:'#161616',L:'#f2cda0',S:'#d8a06e',D:'#a86c3c',E:'#3a2a20'};
+const BC={X:'#5a3420',L:'#f2cda0',S:'#d8a06e',D:'#a86c3c',E:'#3a2a20'};
 const BM=[
   r(['.',32]),
   r(['.',13],['X',6],['.',13]),
