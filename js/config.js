@@ -1,44 +1,47 @@
 'use strict';
-/* === 登録/設定（カテゴリ配列方式）===================================
-   1カテゴリ = 1オブジェクト = この配列の1行。
-   ★カテゴリ追加  → CATEGORIES に1行足すだけ（html/engineは触らない）
-   ★並べ替え/重ね順 → 行を上下に動かすだけ（上の行ほど下に描画＝奥）
-   ★初期選択      → 各行の def（options内のindex。0=なし）
-
-   options: 先頭 null = 「なし」。{name, px:関数()} で部品を登録。
-   px は parts.js の関数を呼ぶ。base.js / parts.js は変更不要。
+/* === 登録/設定（カテゴリ配列方式・色対応版）=========================
+   ★形の追加     → options に {name, fn:関数} を足す（fnは関数“参照”、()なし）
+   ★色の追加     → palettes に [輪郭,明,中,影] を足す
+   ★色なしカテゴリ → palettes を書かない（服・武器・盾）
+   ★並べ替え/重ね順 → 行を上下に動かす（上ほど奥＝先に描画）
+   ★初期選択      → def（形index,0=なし）, defCol（色index）
+   描画: engine が fn(palettes[選択色]) を呼ぶ。色なしは fn()。
 =================================================================== */
 const CATEGORIES = [
-  // id        label      def  options
-  { id:'clothes', label:'服',   def:1,
-    options:[null,{name:'旅人の服',px:bClothAdv()},{name:'戦士の鎧',px:bClothWar()},{name:'魔法使い',px:bClothMage()}] },
-
-  { id:'weapon',  label:'武器', def:1,
-    options:[null,{name:'カタナ',px:bWpKatana()},{name:'ヤリ',px:bWpSpear()},{name:'オノ',px:bWpAxe()}] },
-
-  { id:'shield',  label:'盾',   def:3,
-    options:[null,{name:'木の盾',px:bShWood()},{name:'鉄の盾',px:bShIron()},{name:'鞘',px:bShScabbard()}] },
-
-  { id:'eyes',    label:'目',   def:1,
+  { id:'clothes', label:'服', def:1,
     options:[null,
-      {name:'点目',px:bEyeMDot()},{name:'細目',px:bEyeMThin()},{name:'鋭い目',px:bEyeMSharp()},
-      {name:'半目',px:bEyeMCalm()},{name:'強い目',px:bEyeMStrong()},{name:'たれ目♂',px:bEyeMDroop()},
-      {name:'まる目',px:bEyeFRound()},{name:'ぱっちり',px:bEyeFBig()},{name:'まつ毛',px:bEyeFLash()},
-      {name:'たれ目♀',px:bEyeFDroop()},{name:'キリッ',px:bEyeFSharp()},{name:'ウインク',px:bEyeFWink()}] },
+      {name:'旅人の服',fn:bClothAdv},{name:'戦士の鎧',fn:bClothWar},{name:'魔法使い',fn:bClothMage}] },
 
-  { id:'hair',    label:'髪型', def:1,
+  { id:'weapon', label:'武器', def:1,
     options:[null,
-      {name:'短髪♂',px:bHairMShort()},{name:'ツンツン♂',px:bHairMSpiky()},{name:'七三♂',px:bHairMSide()},
-      {name:'オールバック♂',px:bHairMBack()},{name:'天パ♂',px:bHairMCurly()},{name:'前髪長め♂',px:bHairMLong()},
-      {name:'ロング♀',px:bHairFLong()},{name:'ツインテ♀',px:bHairFTwin()},{name:'ウェーブ♀',px:bHairFWavy()},
-      {name:'ボブ♀',px:bHairFBob()},{name:'お団子♀',px:bHairFBun()},{name:'サイドポニー♀',px:bHairFPony()}] },
+      {name:'カタナ',fn:bWpKatana},{name:'ヤリ',fn:bWpSpear},{name:'オノ',fn:bWpAxe}] },
 
-  // ↓ カテゴリを増やすときはここに1行足すだけ。例：
-  // { id:'eyes', label:'目', def:1, options:[null,{name:'丸目',px:bEyeRound()}] },
+  { id:'shield', label:'盾', def:3,
+    options:[null,
+      {name:'木の盾',fn:bShWood},{name:'鉄の盾',fn:bShIron},{name:'鞘',fn:bShScabbard}] },
+
+  { id:'eyes', label:'目', def:1, defCol:0,
+    options:[null,
+      {name:'標準♂',fn:bEyeMNormal},{name:'鋭い♂',fn:bEyeMSharp},{name:'強い♂',fn:bEyeMStrong},
+      {name:'冷静♂',fn:bEyeMCalm},{name:'たれ目♂',fn:bEyeMDroop},{name:'細目♂',fn:bEyeMNarrow},
+      {name:'丸目♀',fn:bEyeFRound},{name:'ぱっちり♀',fn:bEyeFBig},{name:'まつ毛♀',fn:bEyeFLash},
+      {name:'たれ目♀',fn:bEyeFDroop},{name:'凛♀',fn:bEyeFSharp},{name:'ウインク♀',fn:bEyeFWink}],
+    palettes:[EYE_BLUE, EYE_BROWN, EYE_GREEN, EYE_PURPLE, EYE_RED],
+    paletteNames:['青','茶','緑','紫','赤'] },
+
+  { id:'hair', label:'髪型', def:1, defCol:1,
+    options:[null,
+      {name:'短髪♂',fn:bHairMShort},{name:'ツンツン♂',fn:bHairMSpiky},{name:'七三♂',fn:bHairMSide},
+      {name:'オールバック♂',fn:bHairMBack},{name:'天パ♂',fn:bHairMCurly},{name:'前髪長め♂',fn:bHairMLong},
+      {name:'ロング♀',fn:bHairFLong},{name:'ツインテ♀',fn:bHairFTwin},{name:'ウェーブ♀',fn:bHairFWavy},
+      {name:'ボブ♀',fn:bHairFBob},{name:'お団子♀',fn:bHairFBun},{name:'サイドポニー♀',fn:bHairFPony}],
+    palettes:[HAIR_BLACK, HAIR_BROWN, HAIR_GOLD, HAIR_BLUE, HAIR_PURPLE, HAIR_RED],
+    paletteNames:['黒','茶','金','青','紫','赤'] },
 ];
 
-/* engine.js が使う派生データ（ここは触らなくてよい）------------------
-   描画順 = CATEGORIES の並び順そのもの。
-   SEL = 現在の選択状態（id→選択index）。 */
-const SEL = {};
-CATEGORIES.forEach(c => { SEL[c.id] = c.def; });
+/* 派生データ（触らなくてよい）。SEL=形選択, SELCOL=色選択 */
+const SEL = {}, SELCOL = {};
+CATEGORIES.forEach(c => {
+  SEL[c.id] = c.def || 0;
+  SELCOL[c.id] = c.defCol || 0;
+});
