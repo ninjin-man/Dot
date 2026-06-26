@@ -8,9 +8,15 @@
    描画: engine が fn(palettes[選択色]) を呼ぶ。色なしは fn()。
 =================================================================== */
 const CATEGORIES = [
-  { id:'clothes', label:'服', def:1,
+  { id:'bottoms', label:'ボトムス', def:1,
     options:[null,
-      {name:'旅人の服',fn:bClothAdv},{name:'戦士の鎧',fn:bClothWar},{name:'魔法使い',fn:bClothMage}] },
+      {name:'旅ズボン',fn:bBtmAdvPants},{name:'すね当て',fn:bBtmWarGreave},{name:'長ローブ',fn:bBtmMageRobe},
+      {name:'スカート',fn:bBtmSkirt},{name:'ロングスカート',fn:bBtmLongSkirt}] },
+
+  { id:'tops', label:'トップス', def:1,
+    options:[null,
+      {name:'旅人の上衣',fn:bTopAdv},{name:'戦士の胸甲',fn:bTopWar},{name:'魔法ローブ',fn:bTopMage},
+      {name:'シャツ',fn:bTopShirt}] },
 
   { id:'weapon', label:'武器', def:1,
     options:[null,
@@ -19,6 +25,11 @@ const CATEGORIES = [
   { id:'shield', label:'盾', def:3,
     options:[null,
       {name:'木の盾',fn:bShWood},{name:'鉄の盾',fn:bShIron},{name:'鞘',fn:bShScabbard}] },
+
+  { id:'shoes', label:'靴', def:1,
+    options:[null,
+      {name:'革ブーツ',fn:bShoeBoot},{name:'鉄靴',fn:bShoeIron},{name:'布靴',fn:bShoeFlat},
+      {name:'スニーカー',fn:bShoeSneaker}] },
 
   { id:'eyes', label:'目', def:1, defCol:0,
     options:[null,
