@@ -1,157 +1,210 @@
 'use strict';
-/* === エンジン（描画・UI・色帯・ランダム・PNG保存）===================
-   CATEGORIES（config.js）の配列だけを見て動く。
-   形=fn(palette)で取得。palettesを持つカテゴリは色帯を表示。
-   描画順 = CATEGORIES の並び順（先頭ほど奥＝先に描く）。
-=================================================================== */
+/* === engine.js : 合成描画 + パーツUI自動生成 + 実機ドット編集モード ===
+   依存: base.js(BC,BM) / helper.js(M,P) / 各パーツ / config.js(CATEGORIES,SEL,SELCOL)
+   役割:
+   1) CATEGORIES から合成して 32x32 を mainCanvas に描画
+   2) パーツ選択パネルと色帯を自動生成
+   3) ランダム合成 / PNG保存
+   4) 編集モード: 合成結果を下絵に、指でドットを打って P()形式JS と PNG に書き出す
+================================================================= */
 
-// 形のピクセル配列を取得。色カテゴリは選択中パレットを渡す。
-function getPx(cat, idx, colIdx){
-  const pt = cat.options[idx];
-  if(!pt) return null;
-  const fn = pt.fn || pt.px;          // fn:関数参照（pxは後方互換）
-  if(typeof fn !== 'function') return fn;  // 既に配列ならそのまま
-  if(cat.palettes){
-    const c = colIdx!==undefined ? colIdx : SELCOL[cat.id];
-    return fn(cat.palettes[c]);
-  }
-  return fn();
-}
+const SIZE = 32, SCALE = 10;           // 32px実体 / 表示320px
+const cv = document.getElementById('mainCanvas');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
-function drawBase(ctx){
-  for(let y=0;y<32;y++){
-    const row=BM[y];
-    for(let x=0;x<32;x++){
-      const ch=row[x];
-      if(BC[ch]){ctx.fillStyle=BC[ch];ctx.fillRect(x,y,1,1);}
-    }
-  }
-}
-function drawPart(ctx,pxArr){
-  if(!pxArr) return;
-  for(const[x,y,c] of pxArr){ctx.fillStyle=c;ctx.fillRect(x,y,1,1);}
-}
-
-// ov: {id:index} で形を一時上書き。ovc:{id:colIdx}で色を一時上書き。
-function render(ctx, ov={}, ovc={}){
-  ctx.clearRect(0,0,32,32);
-  drawBase(ctx);
-  for(const cat of CATEGORIES){
-    const idx = ov[cat.id]!==undefined ? ov[cat.id] : SEL[cat.id];
-    const col = ovc[cat.id]!==undefined ? ovc[cat.id] : SELCOL[cat.id];
-    drawPart(ctx, getPx(cat, idx, col));
-  }
-}
-
-// サムネ：素体 + そのカテゴリの形のみ（色は選択中）
-function thumb(catId,idx){
-  const c=document.createElement('canvas');
-  c.width=c.height=32;
-  const ov={}; CATEGORIES.forEach(cc=>ov[cc.id]=0);
-  ov[catId]=idx;
-  render(c.getContext('2d'),ov);
-  return c;
-}
-
-const mainCtx = document.getElementById('mainCanvas').getContext('2d');
-const panelRoot = document.getElementById('panelRoot');
-
-// 形サムネを今の色で描き直す（色変更時に呼ぶ）
-function refreshThumbs(cat){
-  const opts=document.getElementById('opt-'+cat.id);
-  if(!opts) return;
-  opts.querySelectorAll('.part-option').forEach((wrap,idx)=>{
-    const old=wrap.querySelector('canvas');
-    if(!old) return;
-    const tc=thumb(cat.id,idx);
-    tc.style.cssText='width:64px;height:64px;image-rendering:pixelated;display:block;';
-    old.replaceWith(tc);
-  });
-}
-
-(function initUI(){
+/* ---- 合成: 各レイヤーの [x,y,color] を集めて1枚に ---- */
+function buildLayers(){
+  const layers = [];
+  // 素体（BMを展開）
+  const baseDots = [];
+  BM.forEach((row,y)=>{ for(let x=0;x<row.length;x++){ const ch=row[x]; if(ch!=='.'&&BC[ch]) baseDots.push([x,y,BC[ch]]); }});
+  layers.push(baseDots);
+  // カテゴリ順（CATEGORIESの並び＝奥から手前）
   CATEGORIES.forEach(cat=>{
-    const panel=document.createElement('div');
-    panel.className='part-panel';
+    const sel = SEL[cat.id]; if(!sel) return;          // 0=なし
+    const opt = cat.options[sel]; if(!opt) return;
+    let dots;
+    if(cat.palettes){                                  // 色ありカテゴリ
+      const palIdx = SELCOL[cat.id] || 0;
+      dots = opt.fn(cat.palettes[palIdx]);
+    } else {
+      dots = opt.fn();                                 // 色なし
+    }
+    layers.push(dots);
+  });
+  return layers;
+}
 
-    const label=document.createElement('span');
-    label.className='part-label';
-    label.textContent='▶ '+cat.label;
-    panel.appendChild(label);
-
-    const opts=document.createElement('div');
-    opts.className='part-options';
-    opts.id='opt-'+cat.id;
-    panel.appendChild(opts);
-
-    cat.options.forEach((pt,idx)=>{
-      const wrap=document.createElement('div');
-      wrap.className='part-option'+(idx===SEL[cat.id]?' active':'');
-      const tc=thumb(cat.id,idx);
-      tc.style.cssText='width:64px;height:64px;image-rendering:pixelated;display:block;';
-      wrap.appendChild(tc);
-      const cap=document.createElement('span');
-      cap.textContent=pt?pt.name:'なし';
-      wrap.appendChild(cap);
-      wrap.addEventListener('click',()=>{
-        SEL[cat.id]=idx;
-        opts.querySelectorAll('.part-option').forEach((el,i)=>el.classList.toggle('active',i===idx));
-        render(mainCtx);
-      });
-      opts.appendChild(wrap);
+/* ---- 1枚の32x32ピクセル配列に焼き込む（後勝ち） ---- */
+function flatten(layers){
+  const grid = new Array(SIZE*SIZE).fill(null);
+  layers.forEach(dots=>{
+    dots.forEach(([x,y,c])=>{
+      if(x>=0&&x<SIZE&&y>=0&&y<SIZE&&c) grid[y*SIZE+x]=c;
     });
+  });
+  return grid;
+}
 
-    // 色帯（palettesを持つカテゴリのみ）
+/* ---- 描画 ---- */
+function drawGrid(grid){
+  ctx.clearRect(0,0,SIZE,SIZE);
+  for(let y=0;y<SIZE;y++) for(let x=0;x<SIZE;x++){
+    const c=grid[y*SIZE+x]; if(c){ ctx.fillStyle=c; ctx.fillRect(x,y,1,1); }
+  }
+}
+
+let currentGrid = null;
+function render(){
+  currentGrid = flatten(buildLayers());
+  if(editMode){ drawEdit(); } else { drawGrid(currentGrid); }
+}
+
+/* ================= パーツUI自動生成 ================= */
+function buildPanels(){
+  const root = document.getElementById('panelRoot');
+  root.innerHTML='';
+  CATEGORIES.forEach(cat=>{
+    const panel=document.createElement('div'); panel.className='part-panel';
+    const label=document.createElement('span'); label.className='part-label';
+    label.textContent=cat.label; panel.appendChild(label);
+    const opts=document.createElement('div'); opts.className='part-options';
+    cat.options.forEach((opt,i)=>{
+      const box=document.createElement('div');
+      box.className='part-option'+(SEL[cat.id]===i?' active':'');
+      const c=document.createElement('canvas'); c.width=SIZE; c.height=SIZE;
+      const cc=c.getContext('2d'); cc.imageSmoothingEnabled=false;
+      // サムネ: 素体+このパーツ
+      const dots=[];
+      BM.forEach((row,y)=>{for(let x=0;x<row.length;x++){const ch=row[x];if(ch!=='.'&&BC[ch])dots.push([x,y,BC[ch]]);}});
+      let g=flatten([dots]);
+      if(opt){ const d = cat.palettes? opt.fn(cat.palettes[SELCOL[cat.id]||0]) : opt.fn(); g=flatten([dots,d]); }
+      for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const col=g[y*SIZE+x];if(col){cc.fillStyle=col;cc.fillRect(x,y,1,1);}}
+      box.appendChild(c);
+      const sp=document.createElement('span'); sp.textContent=opt?opt.name:'なし'; box.appendChild(sp);
+      box.onclick=()=>{ SEL[cat.id]=i; buildPanels(); render(); };
+      opts.appendChild(box);
+    });
+    panel.appendChild(opts);
+    // 色帯
     if(cat.palettes){
-      const bar=document.createElement('div');
-      bar.className='color-bar';
-      bar.id='col-'+cat.id;
-      cat.palettes.forEach((pal,ci)=>{
-        const sw=document.createElement('div');
-        sw.className='color-swatch'+(ci===SELCOL[cat.id]?' active':'');
-        sw.title=(cat.paletteNames&&cat.paletteNames[ci])||('色'+ci);
-        // パレットの濃淡をミニドットで表示
-        pal.forEach(hex=>{
-          const dot=document.createElement('span');
-          dot.className='color-dot';
-          dot.style.background=hex;
-          sw.appendChild(dot);
-        });
-        sw.addEventListener('click',()=>{
-          SELCOL[cat.id]=ci;
-          bar.querySelectorAll('.color-swatch').forEach((el,i)=>el.classList.toggle('active',i===ci));
-          refreshThumbs(cat);   // 形サムネも新色に
-          render(mainCtx);
-        });
+      const bar=document.createElement('div'); bar.className='color-bar';
+      cat.palettes.forEach((p,ci)=>{
+        const sw=document.createElement('div'); sw.className='color-swatch'+((SELCOL[cat.id]||0)===ci?' active':'');
+        p.slice(0,4).forEach(col=>{const d=document.createElement('span');d.className='color-dot';d.style.background=col;sw.appendChild(d);});
+        sw.title=cat.paletteNames?cat.paletteNames[ci]:'';
+        sw.onclick=()=>{ SELCOL[cat.id]=ci; buildPanels(); render(); };
         bar.appendChild(sw);
       });
       panel.appendChild(bar);
     }
-
-    panelRoot.appendChild(panel);
+    root.appendChild(panel);
   });
-  render(mainCtx);
-})();
+}
 
+/* ================= ランダム / 保存 ================= */
 function randomize(){
   CATEGORIES.forEach(cat=>{
-    SEL[cat.id]=Math.floor(Math.random()*cat.options.length);
-    document.getElementById('opt-'+cat.id)
-      .querySelectorAll('.part-option')
-      .forEach((el,i)=>el.classList.toggle('active',i===SEL[cat.id]));
-    if(cat.palettes){
-      SELCOL[cat.id]=Math.floor(Math.random()*cat.palettes.length);
-      const bar=document.getElementById('col-'+cat.id);
-      if(bar) bar.querySelectorAll('.color-swatch').forEach((el,i)=>el.classList.toggle('active',i===SELCOL[cat.id]));
-      refreshThumbs(cat);
-    }
+    const n=cat.options.length;
+    // なし(0)も含めてランダム。ただし髪・顔は必ず何か出す
+    let lo = (cat.id==='hair'||cat.id==='eyes')?1:0;
+    SEL[cat.id]=lo+Math.floor(Math.random()*(n-lo));
+    if(cat.palettes){ SELCOL[cat.id]=Math.floor(Math.random()*cat.palettes.length); }
   });
-  render(mainCtx);
+  buildPanels(); render();
+}
+function saveImage(){
+  const out=document.createElement('canvas'); out.width=SIZE*SCALE; out.height=SIZE*SCALE;
+  const o=out.getContext('2d'); o.imageSmoothingEnabled=false;
+  const g = editMode? editGrid : currentGrid;
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const c=g[y*SIZE+x];if(c){o.fillStyle=c;o.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);}}
+  const a=document.createElement('a'); a.download='character.png'; a.href=out.toDataURL('image/png'); a.click();
 }
 
-function saveImage(){
-  const a=document.createElement('a');
-  a.download='character.png';
-  a.href=document.getElementById('mainCanvas').toDataURL('image/png');
-  a.click();
+/* ================= 編集モード ================= */
+let editMode=false, editGrid=null, editColor='#2a2422', editTool='pen';
+const editHistory=[];
+const GRIDLINE='rgba(0,0,0,0.12)';
+
+function enterEdit(){
+  editMode=true;
+  editGrid = currentGrid.slice();       // 現在の合成をコピーして下絵に
+  editHistory.length=0;
+  document.getElementById('editBar').style.display='block';
+  document.getElementById('normalBar').style.display='none';
+  drawEdit();
 }
+function exitEdit(){
+  editMode=false;
+  document.getElementById('editBar').style.display='none';
+  document.getElementById('normalBar').style.display='flex';
+  drawGrid(currentGrid);
+}
+function drawEdit(){
+  drawGrid(editGrid);
+  // グリッド線
+  ctx.strokeStyle=GRIDLINE; ctx.lineWidth=0.05;
+  for(let i=0;i<=SIZE;i++){
+    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,SIZE);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(SIZE,i);ctx.stroke();
+  }
+}
+function setPixel(x,y){
+  if(x<0||x>=SIZE||y<0||y>=SIZE) return;
+  const idx=y*SIZE+x;
+  if(editTool==='eyedrop'){ const c=editGrid[idx]; if(c){editColor=c; syncColorUI();} return; }
+  editHistory.push([idx,editGrid[idx]]); if(editHistory.length>500)editHistory.shift();
+  editGrid[idx] = (editTool==='eraser')? null : editColor;
+  drawEdit();
+}
+function undoEdit(){ const h=editHistory.pop(); if(h){ editGrid[h[0]]=h[1]; drawEdit(); } }
+function clearEdit(){ editGrid=new Array(SIZE*SIZE).fill(null); drawEdit(); }
+
+/* タップ/ドラッグ → ドット座標 */
+function evtToCell(e){
+  const r=cv.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  const px=(t.clientX-r.left)/r.width*SIZE;
+  const py=(t.clientY-r.top)/r.height*SIZE;
+  return [Math.floor(px),Math.floor(py)];
+}
+let drawing=false;
+function onDown(e){ if(!editMode)return; e.preventDefault(); drawing=true; const[x,y]=evtToCell(e); setPixel(x,y); }
+function onMove(e){ if(!editMode||!drawing)return; e.preventDefault(); const[x,y]=evtToCell(e); setPixel(x,y); }
+function onUp(e){ drawing=false; }
+cv.addEventListener('touchstart',onDown,{passive:false});
+cv.addEventListener('touchmove',onMove,{passive:false});
+cv.addEventListener('touchend',onUp);
+cv.addEventListener('mousedown',onDown);
+cv.addEventListener('mousemove',onMove);
+window.addEventListener('mouseup',onUp);
+
+function setTool(t){ editTool=t; syncColorUI(); }
+function setColor(c){ editColor=c; editTool='pen'; syncColorUI(); }
+function syncColorUI(){
+  document.querySelectorAll('.edit-tool').forEach(b=>b.classList.toggle('on',b.dataset.tool===editTool));
+  const cur=document.getElementById('curColor'); if(cur)cur.style.background=editColor;
+  document.querySelectorAll('.edit-swatch').forEach(s=>s.classList.toggle('on',s.dataset.col===editColor));
+}
+
+/* JS(P形式)書き出し: 使われている色をパレット化しインデックスドットで出力 */
+function exportJS(){
+  const palette=[]; const pidx={};
+  const dots=[];
+  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+    const c=editGrid[y*SIZE+x]; if(!c)continue;
+    if(!(c in pidx)){ pidx[c]=palette.length; palette.push(c); }
+    dots.push([x,y,pidx[c]]);
+  }
+  const palStr='['+palette.map(c=>`"${c}"`).join(',')+']';
+  const dotStr='['+dots.map(d=>`[${d[0]},${d[1]},${d[2]}]`).join(',')+']';
+  const code=`function bCustom(){return P(${palStr},${dotStr});}`;
+  const ta=document.getElementById('jsOut'); ta.value=code; ta.style.display='block';
+  ta.select();
+  try{ navigator.clipboard.writeText(code); }catch(e){}
+}
+
+/* ================= 起動 ================= */
+buildPanels();
+render();
