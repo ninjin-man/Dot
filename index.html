@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phase3 ドット絵合成ツール（カテゴリ配列版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Phase3 ドット絵合成ツール＋実機エディタ</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,22 +14,46 @@
     <canvas id="mainCanvas" width="32" height="32"></canvas>
 </div>
 
+<!-- 通常モードのボタン -->
+<div class="btn-row" id="normalBar">
+    <button class="btn-rand" onclick="randomize()">🎲 ランダム</button>
+    <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
+    <button class="btn-edit" onclick="enterEdit()">✏️ 編集</button>
+</div>
+
+<!-- 編集モードのツールバー（初期非表示） -->
+<div id="editBar" style="display:none;">
+    <div class="edit-tools">
+        <button class="edit-tool on" data-tool="pen" onclick="setTool('pen')">✏️ペン</button>
+        <button class="edit-tool" data-tool="eyedrop" onclick="setTool('eyedrop')">💧スポイト</button>
+        <button class="edit-tool" data-tool="eraser" onclick="setTool('eraser')">⬜消し</button>
+        <button class="edit-misc" onclick="undoEdit()">↶戻る</button>
+        <button class="edit-misc" onclick="clearEdit()">🗑全消し</button>
+    </div>
+    <div class="edit-colorrow">
+        <span class="cur-color-wrap">現在色<span id="curColor"></span></span>
+        <input type="color" id="colorPick" value="#2a2422" onchange="setColor(this.value)">
+    </div>
+    <div class="edit-swatches" id="editSwatches"></div>
+    <div class="btn-row">
+        <button class="btn-save" onclick="exportJS()">📋 JSコード書き出し</button>
+        <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
+        <button class="btn-rand" onclick="exitEdit()">✓ 完了</button>
+    </div>
+    <textarea id="jsOut" readonly placeholder="JSコードがここに出ます（自動コピー）" style="display:none;"></textarea>
+</div>
+
 <!-- パネルは engine.js が CATEGORIES から自動生成してここに入れる -->
 <div id="panelRoot"></div>
 
-<div class="btn-row">
-    <button class="btn-rand" onclick="randomize()">🎲 ランダム</button>
-    <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
-</div>
-
 <div class="info">
-    <span style="color:#aaa">見下ろし視点・コンパクト体型(実測ベース)</span><br>
-    <span style="color:#ff6b6b">■</span> 武器ジョイント X=8,Y=21&nbsp;
-    <span style="color:#4dabf7">■</span> 盾ジョイント X=23,Y=21
+    <span style="color:#aaa">見下ろし視点・コンパクト体型 / 編集モードで実機ドット打ち可</span><br>
+    <span style="color:#ff6b6b">■</span> 武器JT X=8,Y=21&nbsp;
+    <span style="color:#4dabf7">■</span> 盾JT X=23,Y=21
 </div>
 </div>
 
-<!-- 読み込み順: base→helper→各パーツ→config→engine（依存関係順） -->
+<!-- 読み込み順: base→helper→各パーツ→config→engine -->
 <script src="js/base.js"></script>
 <script src="js/helper.js"></script>
 <script src="js/hair.js"></script>
@@ -41,5 +65,24 @@
 <script src="js/eyes.js"></script>
 <script src="js/config.js"></script>
 <script src="js/engine.js"></script>
+<script>
+/* 編集パレット（よく使う色）を生成 */
+(function(){
+  const sw=[
+    ['#5a3420','輪郭'],['#f5d6ad','肌明'],['#e8bd8e','肌中'],['#c8966a','肌影'],
+    ['#2a2422','目黒'],['#f8f8fc','白'],['#4a6496','瞳青'],['#7a4c2a','瞳茶'],
+    ['#eaa890','頬'],['#8a6038','髪茶'],['#d2604a','赤'],['#62b06a','緑'],
+    ['#5a8ac0','青'],['#9a6cc8','紫'],['#e0c050','金'],['#9298a8','銀']
+  ];
+  const box=document.getElementById('editSwatches');
+  sw.forEach(([c,name])=>{
+    const b=document.createElement('button');
+    b.className='edit-swatch'; b.dataset.col=c; b.style.background=c; b.title=name;
+    b.onclick=()=>setColor(c);
+    box.appendChild(b);
+  });
+  if(typeof syncColorUI==='function') syncColorUI();
+})();
+</script>
 </body>
 </html>
