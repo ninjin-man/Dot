@@ -11,13 +11,13 @@ const EYE_PURPLE=[EYE_BROW,EYE_LINE,'#7850aa',EYE_WHITE,EYE_HI];
 const EYE_RED   =[EYE_BROW,EYE_LINE,'#a83c3c',EYE_WHITE,EYE_HI];
 
 /* 鼻・口・頬の共通ドット（肌になじむ色で固定。瞳色とは独立） */
-const NOSE='#b07a4e';     // 鼻先の影（肌中間より少し濃い）
+const NOSE='#b07a4e';     // 鼻先の影（肌中間より少し濃い）。中央対称2px(列15,16)
 const MOUTH='#8a5038';    // 口
 const CHEEK='#eaa890';    // 頬の赤み（女性のみ）
 // 男性の顔下部：鼻(点1)＋口(2px)
-const FACE_M=[[15,10,NOSE],[15,12,MOUTH],[16,12,MOUTH]];
+const FACE_M=[[15,10,NOSE],[16,10,NOSE],[15,12,MOUTH],[16,12,MOUTH]];
 // 女性の顔下部：鼻＋やや小さい口＋頬
-const FACE_F=[[15,10,NOSE],[15,12,MOUTH],[16,12,MOUTH],[11,11,CHEEK],[20,11,CHEEK]];
+const FACE_F=[[15,10,NOSE],[16,10,NOSE],[15,12,MOUTH],[16,12,MOUTH],[11,11,CHEEK],[20,11,CHEEK]];
 
 function bEyeMNormal(pal){return [...P(pal||EYE_BLUE,[[11,6,0],[12,6,0],[13,6,0],[18,6,0],[19,6,0],[20,6,0],[11,8,1],[12,8,1],[13,8,1],[18,8,1],[19,8,1],[20,8,1],[11,9,3],[12,9,2],[13,9,3],[18,9,3],[19,9,2],[20,9,3]]),...FACE_M];} // 標準(男)
 function bEyeMSharp(pal){return [...P(pal||EYE_BLUE,[[13,5,0],[18,5,0],[11,6,0],[12,6,0],[19,6,0],[20,6,0],[12,8,1],[13,8,1],[18,8,1],[19,8,1],[11,9,1],[12,9,3],[13,9,2],[18,9,2],[19,9,3],[20,9,1]]),...FACE_M];} // 鋭い(男)
