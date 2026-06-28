@@ -35,12 +35,31 @@
         <input type="color" id="colorPick" value="#2a2422" onchange="setColor(this.value)">
     </div>
     <div class="edit-swatches" id="editSwatches"></div>
+    <div class="save-row">
+        <label class="save-lbl">登録先
+            <select id="saveCat">
+                <option value="hair">髪型</option>
+                <option value="eyes">顔</option>
+                <option value="tops">トップス</option>
+                <option value="bottoms">ボトムス</option>
+                <option value="shoes">靴</option>
+                <option value="weapon">武器</option>
+                <option value="shield">盾</option>
+            </select>
+        </label>
+        <label class="save-lbl">ID
+            <input type="text" id="saveId" placeholder="例:Mohawk" maxlength="16">
+        </label>
+        <label class="save-lbl save-diff">
+            <input type="checkbox" id="saveDiff" checked>差分のみ
+        </label>
+    </div>
     <div class="btn-row">
-        <button class="btn-save" onclick="exportJS()">📋 JSコード書き出し</button>
+        <button class="btn-save" onclick="exportJS()">📋 登録コード書き出し</button>
         <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
         <button class="btn-rand" onclick="exitEdit()">✓ 完了</button>
     </div>
-    <textarea id="jsOut" readonly placeholder="JSコードがここに出ます（自動コピー）" style="display:none;"></textarea>
+    <textarea id="jsOut" readonly placeholder="登録コードがここに出ます（①パーツファイル ②config.js の2か所に貼る・自動コピー）" style="display:none;"></textarea>
 </div>
 
 <!-- パネルは engine.js が CATEGORIES から自動生成してここに入れる -->
