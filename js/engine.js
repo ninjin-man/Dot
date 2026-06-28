@@ -188,20 +188,55 @@ function syncColorUI(){
   document.querySelectorAll('.edit-swatch').forEach(s=>s.classList.toggle('on',s.dataset.col===editColor));
 }
 
-/* JS(P形式)書き出し: 使われている色をパレット化しインデックスドットで出力 */
+/* JS(P形式)書き出し: 関数定義 + config登録行 + 貼り先ガイドをセット出力。
+   カテゴリ・パーツID・差分モードを編集UIから読む。
+   差分モード: 下絵(currentGrid)と異なるセルだけ出力＝純粋な差分パーツになる。 */
+const CAT_FILE = { hair:'hair.js', eyes:'eyes.js', tops:'tops.js',
+  bottoms:'bottoms.js', shoes:'shoes.js', weapon:'weapon.js', shield:'shield.js' };
+const CAT_LABEL = { hair:'髪型', eyes:'顔', tops:'トップス',
+  bottoms:'ボトムス', shoes:'靴', weapon:'武器', shield:'盾' };
+
 function exportJS(){
-  const palette=[]; const pidx={};
-  const dots=[];
+  const catSel = document.getElementById('saveCat');
+  const idInp  = document.getElementById('saveId');
+  const diffChk= document.getElementById('saveDiff');
+  const cat = catSel ? catSel.value : 'hair';
+  let id = (idInp && idInp.value.trim()) ? idInp.value.trim() : 'Custom';
+  id = id.replace(/[^A-Za-z0-9]/g,'');                 // 関数名は英数のみ
+  if(!id) id='Custom';
+  const fnName = 'b' + cat.charAt(0).toUpperCase()+cat.slice(1) + id; // 例 bHairMohawk
+  const diff = diffChk ? diffChk.checked : true;
+
+  const palette=[]; const pidx={}; const dots=[];
   for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
-    const c=editGrid[y*SIZE+x]; if(!c)continue;
+    const c=editGrid[y*SIZE+x];
+    if(diff){                                          // 差分: 下絵と同じセルは飛ばす
+      const base=currentGrid[y*SIZE+x];
+      if(c===base) continue;
+      if(!c) continue;                                 // 消した箇所は差分出力では無視
+    } else {
+      if(!c) continue;
+    }
     if(!(c in pidx)){ pidx[c]=palette.length; palette.push(c); }
     dots.push([x,y,pidx[c]]);
   }
+  if(dots.length===0){
+    const ta=document.getElementById('jsOut');
+    ta.value='// 出力する変更がありません。\n// 差分モードでは「下絵から変えた箇所」だけ出ます。ペンで描き足してください。';
+    ta.style.display='block'; return;
+  }
   const palStr='['+palette.map(c=>`"${c}"`).join(',')+']';
   const dotStr='['+dots.map(d=>`[${d[0]},${d[1]},${d[2]}]`).join(',')+']';
-  const code=`function bCustom(){return P(${palStr},${dotStr});}`;
+  const fnDef = `function ${fnName}(){return P(${palStr},${dotStr});}`;
+  const confLine = `      {name:'${id}',fn:${fnName}},`;
+  const code =
+`/* ① ${CAT_FILE[cat]} の末尾に貼る ↓ */
+${fnDef}
+
+/* ② config.js の「${CAT_LABEL[cat]}」の options:[ ... ] の中に貼る ↓ */
+${confLine}`;
   const ta=document.getElementById('jsOut'); ta.value=code; ta.style.display='block';
-  ta.select();
+  ta.focus(); ta.select();
   try{ navigator.clipboard.writeText(code); }catch(e){}
 }
 
