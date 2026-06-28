@@ -83,3 +83,14 @@ button:hover { opacity:.85; }
   background:#1a1a1a; color:#9fe; border:1px solid #444; border-radius:6px;
   padding:8px; font-family:monospace; resize:vertical;
 }
+
+/* 登録先カテゴリ・ID・差分 */
+.save-row { display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.save-lbl { font-size:12px; color:#bbb; display:flex; flex-direction:column; gap:3px; text-align:left; }
+.save-lbl.save-diff { flex-direction:row; align-items:center; gap:5px; padding-top:14px; }
+#saveCat, #saveId {
+  background:#3a3a3a; color:#eee; border:2px solid #555; border-radius:5px;
+  padding:7px 8px; font-size:13px;
+}
+#saveId { width:110px; }
+#saveDiff { width:18px; height:18px; }
