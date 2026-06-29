@@ -33,10 +33,10 @@ const CATEGORIES = [
 
   { id:'hair', label:'髪型', def:1, defCol:1,
     options:[null,
-      {name:'短髪♂',fn:bHairMShort},{name:'ツンツン♂',fn:bHairMSpiky},{name:'七三♂',fn:bHairMSide},
-      {name:'オールバック♂',fn:bHairMBack},{name:'天パ♂',fn:bHairMCurly},{name:'前髪長め♂',fn:bHairMLong},
-      {name:'ロング♀',fn:bHairFLong},{name:'ツインテ♀',fn:bHairFTwin},{name:'ウェーブ♀',fn:bHairFWavy},
-      {name:'ボブ♀',fn:bHairFBob},{name:'お団子♀',fn:bHairFBun},{name:'サイドポニー♀',fn:bHairFPony}],
+      {name:'短髪♂',fn:bHairMShort},{name:'ツンツン♂',fn:bHairMSpiky},{name:'オールバック♂',fn:bHairMBack},
+      {name:'マッシュ♂',fn:bHairMMash},{name:'武人ロング♂',fn:bHairMWarrior},{name:'サムライ♂',fn:bHairMSamurai},
+      {name:'ロング♀',fn:bHairFLong},{name:'ツインテ♀',fn:bHairFTwin},{name:'ボブ♀',fn:bHairFBob},
+      {name:'お団子♀',fn:bHairFBun},{name:'姫カット♀',fn:bHairFHime},{name:'ポニーテール♀',fn:bHairFPony}],
     palettes:[HAIR_BLACK, HAIR_BROWN, HAIR_GOLD, HAIR_BLUE, HAIR_PURPLE, HAIR_RED],
     paletteNames:['黒','茶','金','青','紫','赤'] },
 
