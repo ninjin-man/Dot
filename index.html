@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d0f14">
-<title>32×32 Walk Animator B v11</title>
+<title>32×32 Walk Animator B v13</title>
 <style>
 :root{
   color-scheme:dark;
@@ -152,6 +152,43 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 .hqLegend{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .hqLegend span{font-size:10px;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:#10131a}
 .hqPrimary{width:100%;margin-top:9px;background:#245e50;border-color:#3a8a75;color:#effff9}
+
+/* v13 Animation Studio */
+.studioPanel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
+.studioTop{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.studioDir{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.studioDir button.active{background:var(--accent);border-color:transparent}
+.studioActions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.studioActions button{font-size:12px;padding:7px}
+.studioTimeline{display:flex;gap:7px;overflow-x:auto;padding:6px 0 8px;min-height:145px}
+.studioFrame{flex:0 0 94px;background:#10131a;border:1px solid var(--line);border-radius:11px;padding:5px}
+.studioFrame.active{border-color:#fff;box-shadow:0 0 0 1px #fff inset}
+.studioFrame canvas{display:block;width:80px;height:80px;margin:auto;image-rendering:pixelated;image-rendering:crisp-edges;background:#090b10;border-radius:7px}
+.studioFrame input{width:100%;min-height:32px;border-radius:7px;padding:3px;font-size:11px;margin-top:4px}
+.studioFrameBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:4px}
+.studioFrameBtns button{min-height:27px;padding:2px;font-size:10px;border-radius:6px}
+.studioEditorWrap{display:flex;justify-content:center;overflow:auto;background:#0b0d12;border:1px solid var(--line);border-radius:14px;padding:8px}
+#studioCanvas{width:min(82vw,352px);height:min(82vw,352px);max-width:352px;max-height:352px;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;background:#0b0d12}
+.studioTools{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}
+.studioTools button.active{background:#245e50;border-color:#3a8a75}
+.paletteRow{display:flex;gap:5px;overflow-x:auto;padding:5px 0;min-height:43px}
+.paletteSwatch{flex:0 0 34px;width:34px;height:34px;min-height:34px;border-radius:8px;border:2px solid #40495b;padding:0}
+.paletteSwatch.active{border-color:#fff}
+.layerRow,.rigRow,.tagRow,.studioExport{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.layerRow select,.rigRow select,.tagRow input,.tagRow select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);padding:6px}
+.studioSub{background:#10131a;border:1px solid var(--line);border-radius:12px;padding:9px;margin-top:9px}
+.studioSubTitle{font-size:12px;font-weight:900;margin-bottom:6px}
+.tagList{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.tagChip{display:flex;align-items:center;gap:4px;background:#1c2230;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:10px}
+.tagChip button{min-height:24px;padding:1px 6px;font-size:10px;border-radius:999px}
+.studioHint{font-size:11px;color:var(--sub);line-height:1.5;margin-top:5px}
+@media(max-width:520px){
+ .studioTop{grid-template-columns:1fr}
+ .studioActions{grid-template-columns:1fr 1fr}
+ .studioTools{grid-template-columns:repeat(3,1fr)}
+ .layerRow,.rigRow,.tagRow,.studioExport{grid-template-columns:1fr 1fr}
+}
+
 @media(max-width:480px){
  .hqParts{grid-template-columns:1fr 1fr}
  .hqTools{grid-template-columns:1fr 1fr}
@@ -174,7 +211,7 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 <body>
 <div class="wrap">
 <header>
-  <h1>32×32 Walk Animator B v11</h1>
+  <h1>32×32 Walk Animator B v13</h1>
   <p class="lead">停止画像1枚を基準にし、追加歩行画像は各向き最大10枚。追加画像がなくても、AIを使わず4コマ歩行を生成できます。高品質生成では6部位マスクと方向別テンプレートを使います。</p>
 </header>
 
@@ -402,7 +439,10 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
     </label>
     <button id="hqClearMask" type="button">マスク全消去</button>
     <label class="checkLabel"><input id="hqShowMask" type="checkbox" checked> マスク表示</label>
-    <label class="checkLabel"><input id="hqSeamRepair" type="checkbox" checked> 関節穴補正</label>
+    <label class="checkLabel"><input id="hqOutlineRepair" type="checkbox" checked> 輪郭つなぎ</label>
+    <label class="checkLabel"><input id="hqSeamRepair" type="checkbox" checked> 関節補完</label>
+    <label class="checkLabel"><input id="hqHoleFill" type="checkbox" checked> 穴埋め</label>
+    <label class="checkLabel"><input id="hqSmartMotion" type="checkbox" checked> 高精度歩行</label>
   </div>
 
   <div class="hqSettings">
@@ -415,11 +455,79 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
     <label class="sliderLabel">上下動 <span id="hqBobValue">1px</span>
       <input id="hqBob" type="range" min="0" max="2" step="1" value="1">
     </label>
+    <label class="sliderLabel">揺れ <span id="hqSwayValue">1px</span>
+      <input id="hqSway" type="range" min="0" max="2" step="1" value="1">
+    </label>
     <label class="checkLabel"><input id="hqHeadLock" type="checkbox" checked> 頭を固定</label>
   </div>
 
   <div id="hqStatus" class="hqStatus">停止画像を読み込むと編集できます。</div>
   <button id="hqGenerate" type="button" class="hqPrimary">高品質4コマを生成</button>
+</section>
+
+<section class="studioPanel" id="studioPanel">
+  <div style="font-weight:900;margin-bottom:4px">Animation Studio</div>
+  <div class="studioHint">生成後の1px修正、オニオンスキン、タイムライン、レイヤー、Pivot/Bone/IK、タグ、ゲーム出力をここで仕上げます。</div>
+  <div class="studioDir">
+    <button data-studio-dir="front" class="active">正面</button><button data-studio-dir="right">右向き</button><button data-studio-dir="left">左向き</button><button data-studio-dir="back">後ろ向き</button>
+  </div>
+  <div class="studioTop">
+    <label class="label">編集するフレーム<select id="studioSource"><option value="auto">自動選択</option><option value="generated">自動生成</option><option value="extras">追加歩行</option></select></label>
+    <label class="label">現在色<input id="studioColor" type="color" value="#ffffff"></label>
+  </div>
+  <div class="studioActions">
+    <button id="studioUndo">↶ Undo</button><button id="studioRedo">↷ Redo</button>
+    <label class="checkLabel"><input id="studioOnion" type="checkbox" checked> Onion</label>
+    <label class="checkLabel"><input id="studioPaletteLock" type="checkbox" checked> Palette固定</label>
+  </div>
+  <div id="studioTimeline" class="studioTimeline"><div class="empty">生成または歩行フレームを読み込んでください</div></div>
+  <div class="studioEditorWrap"><canvas id="studioCanvas" width="320" height="320"></canvas></div>
+  <div class="studioTools">
+    <button data-studio-tool="pencil" class="active">鉛筆</button><button data-studio-tool="erase">消し</button><button data-studio-tool="eyedrop">スポイト</button><button data-studio-tool="pivot">Pivot</button><button data-studio-tool="bone">Bone</button>
+  </div>
+  <div class="paletteRow" id="studioPalette"></div>
+  <button id="studioRefreshPalette" class="small">停止4方向からパレット再取得</button>
+
+  <div class="studioSub">
+    <div class="studioSubTitle">Layer / Linked Cel</div>
+    <div class="layerRow">
+      <select id="studioLayer"></select><button id="studioAddLayer">＋ Layer</button><button id="studioDeleteLayer">－ Layer</button>
+      <label class="checkLabel"><input id="studioLayerVisible" type="checkbox" checked> 表示</label><button id="studioLinkLayer">全フレーム共有</button><button id="studioUnlinkLayer">共有解除</button>
+    </div>
+  </div>
+
+  <div class="studioSub">
+    <div class="studioSubTitle">Pivot / Bone / 簡易IK</div>
+    <div class="rigRow">
+      <button id="studioAutoRig">自動リグ</button>
+      <select id="studioBone"><option value="neck">首</option><option value="leftShoulder">左肩</option><option value="rightShoulder">右肩</option><option value="leftHip">左腰</option><option value="rightHip">右腰</option><option value="leftFoot">左足</option><option value="rightFoot">右足</option></select>
+      <label class="checkLabel"><input id="studioShowRig" type="checkbox" checked> リグ表示</label>
+      <label class="checkLabel"><input id="studioPivotLock" type="checkbox" checked> 足元固定</label>
+      <label class="checkLabel"><input id="studioIK" type="checkbox" checked> 簡易IK</label>
+      <button id="studioApplyPivot">Pivot固定を適用</button>
+      <button id="studioRigRegenerate">リグ設定で再生成</button>
+    </div>
+    <div id="studioRigStatus" class="studioHint">Pivotは停止画像から自動設定できます。</div>
+  </div>
+
+  <div class="studioSub">
+    <div class="studioSubTitle">Animation Tag</div>
+    <div class="tagRow">
+      <input id="studioTagName" value="walk" placeholder="walk / run / attack">
+      <input id="studioTagStart" type="number" min="1" value="1">
+      <input id="studioTagEnd" type="number" min="1" value="4">
+      <select id="studioTagMode"><option value="loop">Loop</option><option value="pingpong">Ping-pong</option><option value="once">Once</option><option value="reverse">Reverse</option></select>
+      <button id="studioAddTag">Tag追加</button>
+    </div>
+    <div id="studioTags" class="tagList"></div>
+  </div>
+
+  <div class="studioSub">
+    <div class="studioSubTitle">Export</div>
+    <div class="studioExport">
+      <button id="studioExportGIF">GIF</button><button id="studioExportAPNG">APNG</button><button id="studioExportGame" class="good">PNG + JSON</button>
+    </div>
+  </div>
 </section>
 
 <div id="directions"></div>
@@ -470,7 +578,10 @@ const state = Object.fromEntries(dirs.map(d => [d.id, {
   timer:null,
   index:0,
   auto:{headLock:true, step:1, arm:1},
-  hq:{mask:null, step:1, arm:1, bob:1, headLock:true, seamRepair:true}
+  hq:{mask:null, step:1, arm:1, bob:1, sway:1, headLock:true, seamRepair:true, outlineRepair:true, holeFill:true, smartMotion:true, pivotLock:true, ikEnabled:true},
+  pivot:{x:16,y:29},
+  bones:null,
+  tags:[{name:'walk',start:0,end:3,mode:'loop'}]
 }]));
 
 const $ = s => document.querySelector(s);
@@ -511,6 +622,15 @@ const HQ_PARTS = {
   6:{name:'右脚',color:[255,157,72,125]}
 };
 const hqEditor={activeDir:'front',part:1,brush:1,erase:false,showMask:true,painting:false,baseImageData:null};
+
+const studio={
+  dir:'front',source:'auto',frame:0,tool:'pencil',color:'#ffffff',onion:true,paletteLock:true,
+  palette:[],layer:0,showRig:true,painting:false,history:{undo:[],redo:[]},
+  layerCanvas:document.createElement('canvas'),layerCtx:null,linkedCounter:1
+};
+studio.layerCanvas.width=32; studio.layerCanvas.height=32;
+studio.layerCtx=studio.layerCanvas.getContext('2d',{willReadFrequently:true}); studio.layerCtx.imageSmoothingEnabled=false;
+
 
 function toast(msg){
   const el = $('#status');
@@ -981,16 +1101,20 @@ async function renderHQEditor(){
   const pc=hqPartCounts(s.hq.mask);
   const statusEl=$('#hqStatus');
   const armTotal=pc[3]+pc[4], legTotal=pc[5]+pc[6];
-  statusEl.textContent=`${labelOf(dir)} / ${template} / 分類 ${pct}% / 腕 L${pc[3]} R${pc[4]} / 脚 L${pc[5]} R${pc[6]}`;
+  statusEl.textContent=`${labelOf(dir)} / ${template} / 分類 ${pct}% / 腕 L${pc[3]} R${pc[4]} / 脚 L${pc[5]} R${pc[6]} / 修復 B輪郭→A関節`;
   const lowArms=(dir==='right'||dir==='left') ? armTotal<8 : armTotal<10;
   const lowLegs=legTotal<20;
   statusEl.classList.toggle('warn', lowArms || lowLegs || pct<85);
 }
 function syncHQControls(){
   const s=state[hqEditor.activeDir];
-  $('#hqStep').value=s.hq.step; $('#hqArm').value=s.hq.arm; $('#hqBob').value=s.hq.bob;
-  $('#hqStepValue').textContent=`${s.hq.step}px`; $('#hqArmValue').textContent=`${s.hq.arm}px`; $('#hqBobValue').textContent=`${s.hq.bob}px`;
-  $('#hqHeadLock').checked=!!s.hq.headLock; $('#hqSeamRepair').checked=!!s.hq.seamRepair;
+  $('#hqStep').value=s.hq.step; $('#hqArm').value=s.hq.arm; $('#hqBob').value=s.hq.bob; $('#hqSway').value=s.hq.sway;
+  $('#hqStepValue').textContent=`${s.hq.step}px`; $('#hqArmValue').textContent=`${s.hq.arm}px`; $('#hqBobValue').textContent=`${s.hq.bob}px`; $('#hqSwayValue').textContent=`${s.hq.sway}px`;
+  $('#hqHeadLock').checked=!!s.hq.headLock;
+  $('#hqOutlineRepair').checked=!!s.hq.outlineRepair;
+  $('#hqSeamRepair').checked=!!s.hq.seamRepair;
+  $('#hqHoleFill').checked=!!s.hq.holeFill;
+  $('#hqSmartMotion').checked=!!s.hq.smartMotion;
   $('#hqBrush').value=String(hqEditor.brush); $('#hqShowMask').checked=!!hqEditor.showMask;
   $('#hqErase').textContent=`消しゴム ${hqEditor.erase?'ON':'OFF'}`;
 }
@@ -1047,11 +1171,149 @@ function getPartBounds(mask,part){
 function writePixelOver(dst,di,src,si){
   if(src[si+3]===0)return;dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
 }
-function drawHQPart(base,mask,dst,part,move,bounds){
+function writeRGBA(dst,di,rgba){
+  if(!rgba || rgba[3]===0)return;
+  dst[di]=rgba[0]; dst[di+1]=rgba[1]; dst[di+2]=rgba[2]; dst[di+3]=rgba[3];
+}
+function isOpaque(buf,x,y){
+  if(x<0||y<0||x>=32||y>=32)return false;
+  return buf[(y*32+x)*4+3] > 0;
+}
+function rgbaAt(buf,x,y){
+  const i=(y*32+x)*4;
+  return [buf[i],buf[i+1],buf[i+2],buf[i+3]];
+}
+function pickDominantColor(buf,coords){
+  const map=new Map();
+  for(const [x,y] of coords){
+    if(!isOpaque(buf,x,y)) continue;
+    const c=rgbaAt(buf,x,y), k=c.join(',');
+    map.set(k,(map.get(k)||0)+1);
+  }
+  let best=null,bestCount=-1;
+  for(const [k,v] of map.entries()) if(v>bestCount){best=k;bestCount=v;}
+  return best ? best.split(',').map(Number) : [255,255,255,255];
+}
+function drawLineRGBA(dst,x0,y0,x1,y1,rgba){
+  x0=Math.round(x0); y0=Math.round(y0); x1=Math.round(x1); y1=Math.round(y1);
+  let dx=Math.abs(x1-x0), sx=x0<x1?1:-1;
+  let dy=-Math.abs(y1-y0), sy=y0<y1?1:-1;
+  let err=dx+dy;
+  while(true){
+    if(x0>=0&&y0>=0&&x0<32&&y0<32) writeRGBA(dst,(y0*32+x0)*4,rgba);
+    if(x0===x1 && y0===y1) break;
+    const e2=2*err;
+    if(e2>=dy){err+=dy;x0+=sx;}
+    if(e2<=dx){err+=dx;y0+=sy;}
+  }
+}
+function repairOutlineContinuity(buf){
+  const src=new Uint8ClampedArray(buf);
+  const out=new Uint8ClampedArray(buf);
+  for(let y=1;y<31;y++) for(let x=1;x<31;x++){
+    const i=(y*32+x)*4, a=src[i+3];
+    const coords=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]].map(([dx,dy])=>[x+dx,y+dy]);
+    const opaqueCoords=coords.filter(([nx,ny])=>isOpaque(src,nx,ny));
+    if(!a){
+      const lr=isOpaque(src,x-1,y)&&isOpaque(src,x+1,y);
+      const ud=isOpaque(src,x,y-1)&&isOpaque(src,x,y+1);
+      const d1=isOpaque(src,x-1,y-1)&&isOpaque(src,x+1,y+1);
+      const d2=isOpaque(src,x+1,y-1)&&isOpaque(src,x-1,y+1);
+      if((lr||ud||d1||d2) && opaqueCoords.length>=2){
+        writeRGBA(out,i,pickDominantColor(src,opaqueCoords));
+      }
+    }else{
+      if(opaqueCoords.length===0){
+        out[i]=0; out[i+1]=0; out[i+2]=0; out[i+3]=0;
+      }
+    }
+  }
+  return out;
+}
+function fillInteriorHoles(buf){
+  const src=new Uint8ClampedArray(buf);
+  const out=new Uint8ClampedArray(buf);
+  for(let y=1;y<31;y++) for(let x=1;x<31;x++){
+    const i=(y*32+x)*4;
+    if(src[i+3]) continue;
+    const cross=[[x-1,y],[x+1,y],[x,y-1],[x,y+1]];
+    const crossOpaque=cross.filter(([nx,ny])=>isOpaque(src,nx,ny));
+    const all=[[x-1,y],[x+1,y],[x,y-1],[x,y+1],[x-1,y-1],[x+1,y-1],[x-1,y+1],[x+1,y+1]];
+    const allOpaque=all.filter(([nx,ny])=>isOpaque(src,nx,ny));
+    if(crossOpaque.length===4){
+      writeRGBA(out,i,pickDominantColor(src,crossOpaque));
+    }else if(allOpaque.length>=6){
+      writeRGBA(out,i,pickDominantColor(src,allOpaque));
+    }
+  }
+  return out;
+}
+function repairJointAnchorGaps(base,mask,dst,bounds,partMoves){
+  for(const part of [3,4,5,6]){
+    const b=bounds[part], move=partMoves[part];
+    if(!b || !move) continue;
+    const end=Math.min(b.maxY,b.minY+2);
+    for(let y=b.minY;y<=end;y++) for(let x=b.minX;x<=b.maxX;x++){
+      const mi=y*32+x;
+      if(mask[mi]!==part) continue;
+      const si=mi*4;
+      if(base.data[si+3]===0) continue;
+      const t=b.h<=1?1:(y-b.minY)/(b.h-1);
+      const tx=x + move.x*t + (move.baseX||0);
+      const ty=y + move.y*t + (move.baseY||0);
+      const sy=y + (move.baseY||0);
+      const rgba=[base.data[si],base.data[si+1],base.data[si+2],base.data[si+3]];
+      drawLineRGBA(dst,x,sy,tx,ty,rgba);
+    }
+  }
+}
+function drawHQSecondarySway(base,mask,dst,dir,bounds,pose,s){
+  if(!s.smartMotion || !s.sway || !pose.phaseSign) return;
+  const sign=pose.phaseSign;
+  const facing=dir==='left' ? -1 : 1;
+  const body=bounds[2], head=bounds[1];
+  if(body){
+    const cx=(body.minX+body.maxX)/2;
+    const start=Math.round(body.minY + body.h*0.58);
+    for(let y=start;y<=body.maxY;y++) for(let x=body.minX;x<=body.maxX;x++){
+      const mi=y*32+x, si=mi*4;
+      if(mask[mi]!==2 || base.data[si+3]===0) continue;
+      const outer=Math.abs(x-cx)>=Math.max(1,Math.floor(body.w*0.18));
+      if(!outer) continue;
+      const dxShift=(dir==='right'||dir==='left') ? facing*sign*s.sway : ((x<cx?-1:1) * sign * s.sway);
+      const dx=Math.round(x+dxShift), dy=y+pose.bob;
+      if(dx<0||dy<0||dx>=32||dy>=32) continue;
+      const di=(dy*32+dx)*4;
+      if(dst[di+3]===0) writePixelOver(dst,di,base.data,si);
+    }
+  }
+  if(head){
+    const cx=(head.minX+head.maxX)/2;
+    const start=Math.round(head.minY + head.h*0.48);
+    for(let y=start;y<=head.maxY;y++) for(let x=head.minX;x<=head.maxX;x++){
+      const mi=y*32+x, si=mi*4;
+      if(mask[mi]!==1 || base.data[si+3]===0) continue;
+      const outer=Math.abs(x-cx)>=Math.max(2,Math.floor(head.w*0.30));
+      if(!outer) continue;
+      const dxShift=(dir==='right'||dir==='left') ? (-facing*sign*s.sway) : ((x<cx?-1:1) * sign * s.sway);
+      const dx=Math.round(x+dxShift), dy=Math.round(y + (pose.bob?1:0));
+      if(dx<0||dy<0||dx>=32||dy>=32) continue;
+      const di=(dy*32+dx)*4;
+      if(dst[di+3]===0) writePixelOver(dst,di,base.data,si);
+    }
+  }
+}
+function drawHQPart(base,mask,dst,part,move,bounds,anchor=null){
   if(!bounds)return;
+  let maxDist=1;
+  if(anchor){
+    for(let yy=bounds.minY;yy<=bounds.maxY;yy++)for(let xx=bounds.minX;xx<=bounds.maxX;xx++)if(mask[yy*32+xx]===part){
+      maxDist=Math.max(maxDist,Math.hypot(xx-anchor.x,yy-anchor.y));
+    }
+  }
   for(let y=bounds.minY;y<=bounds.maxY;y++)for(let x=bounds.minX;x<=bounds.maxX;x++){
     const mi=y*32+x;if(mask[mi]!==part)continue;const si=mi*4;if(base.data[si+3]===0)continue;
-    const t=bounds.h<=1?1:(y-bounds.minY)/(bounds.h-1);
+    const t=anchor ? clamp(Math.hypot(x-anchor.x,y-anchor.y)/maxDist,0,1) : (bounds.h<=1?1:(y-bounds.minY)/(bounds.h-1));
     const dx=Math.round(x + move.x*t + (move.baseX||0));
     const dy=Math.round(y + move.y*t + (move.baseY||0));
     if(dx<0||dy<0||dx>=32||dy>=32)continue;writePixelOver(dst,(dy*32+dx)*4,base.data,si);
@@ -1065,50 +1327,123 @@ function drawHQJointBridge(base,mask,dst,part,bounds,bob){
   }
 }
 function hqPoseFor(dir,phase,s){
-  // v11:
-  // 0 = 接地A, 1 = 中間A, 2 = 接地B, 3 = 中間B
-  // v10では1と3が同一ポーズだったため、実質3枚しかありませんでした。
-  // ここを4枚すべて別姿勢にして、全方向の歩行感を改善します。
+  // 0=接地A, 1=通過A, 2=接地B, 3=通過B
   const contact = phase===0 ? 1 : phase===2 ? -1 : 0;
   const passing = phase===1 ? 1 : phase===3 ? -1 : 0;
   const bob=(phase===1||phase===3)?s.bob:0;
-  const phaseDir = contact || passing;
+  const phaseSign = contact || passing;
+  const smart=!!s.smartMotion;
+  const passX = smart ? 1 : 0;
+  const passY = smart ? 1 : 0;
 
   if(dir==='right'||dir==='left'){
     const facing=dir==='right'?1:-1;
-    return {bob,phaseSign:phaseDir,
-      3:{x:-facing*(contact*s.arm + passing*1), y:0},
-      4:{x: facing*(contact*s.arm + passing*1), y:0},
-      5:{x: facing*(contact*s.step + passing*1), y:contact?1:(passing>0?0:1)},
-      6:{x:-facing*(contact*s.step + passing*1), y:contact?-1:(passing>0?1:0)}
+    return {bob,phaseSign,
+      3:{x:-facing*(contact*s.arm + passing*passX), y:passing?passY:0},
+      4:{x: facing*(contact*s.arm + passing*passX), y:passing?-passY:0},
+      5:{x: facing*(contact*s.step + passing*passX), y:contact?1:(passing>0?0:1)},
+      6:{x:-facing*(contact*s.step + passing*passX), y:contact?-1:(passing>0?1:0)}
     };
   }
 
   const back=dir==='back'?-1:1;
-  return {bob,phaseSign:phaseDir,
-    3:{x: back*(contact*s.arm + passing*1), y:contact?1:(passing>0?0:1)},
-    4:{x:-back*(contact*s.arm + passing*1), y:contact?-1:(passing>0?1:0)},
-    5:{x:-(contact*s.step + passing*1), y:contact?1:(passing>0?0:1)},
-    6:{x: (contact*s.step + passing*1), y:contact?-1:(passing>0?1:0)}
+  return {bob,phaseSign,
+    3:{x: back*(contact*s.arm + passing*passX), y:contact?1:(passing>0?0:1)},
+    4:{x:-back*(contact*s.arm + passing*passX), y:contact?-1:(passing>0?1:0)},
+    5:{x:-(contact*s.step + passing*passX), y:contact?1:(passing>0?0:1)},
+    6:{x: (contact*s.step + passing*passX), y:contact?-1:(passing>0?1:0)}
   };
 }
-function generateHQFrames(base,mask,dir,s){
-  const bounds={};for(let p=1;p<=6;p++)bounds[p]=getPartBounds(mask,p);
+
+function ensureRigDefaults(dir,base=null,mask=null){
+  const s=state[dir];
+  if(s.bones)return s.bones;
+  const b=base?getAlphaBounds(base):{x:5,y:1,w:22,h:29,cx:16};
+  const y0=b.y, bottom=b.y+b.h-1, cx=b.cx;
+  s.pivot=s.pivot||{x:Math.round(cx),y:bottom};
+  const pb={}; if(mask)for(let p=1;p<=6;p++)pb[p]=getPartBounds(mask,p);
+  const center=(bb,fx=.5,fy=.5)=>bb?{x:Math.round(bb.minX+bb.w*fx),y:Math.round(bb.minY+bb.h*fy)}:{x:Math.round(cx),y:Math.round(y0+b.h*fy)};
+  s.bones={
+    neck:{x:Math.round(cx),y:Math.round(y0+b.h*.46)},
+    leftShoulder:center(pb[3],.25,.08), rightShoulder:center(pb[4],.75,.08),
+    leftHip:center(pb[5],.35,.08), rightHip:center(pb[6],.65,.08),
+    leftFoot:center(pb[5],.5,.98), rightFoot:center(pb[6],.5,.98)
+  };
+  s.pivot={x:Math.round((s.bones.leftFoot.x+s.bones.rightFoot.x)/2),y:Math.max(s.bones.leftFoot.y,s.bones.rightFoot.y)};
+  return s.bones;
+}
+function applySimpleIK(partMoves,bounds,dir,phase,rig){
+  if(!rig?.hq?.ikEnabled || !rig.bones)return;
+  let contactPart=null,target=null;
+  if(phase===0){contactPart=5;target=rig.bones.leftFoot;}
+  else if(phase===2){contactPart=6;target=rig.bones.rightFoot;}
+  if(!contactPart||!target||!bounds[contactPart])return;
+  const b=bounds[contactPart],m=partMoves[contactPart];
+  const footX=(b.minX+b.maxX)/2 + (m.x||0) + (m.baseX||0);
+  const footY=b.maxY + (m.y||0) + (m.baseY||0);
+  const cx=clamp(target.x-footX,-2,2), cy=clamp(target.y-footY,-2,2);
+  m.x=(m.x||0)+cx; m.y=(m.y||0)+cy;
+}
+function stabilizeGroundToPivot(buf,pivot){
+  if(!pivot)return buf;
+  let maxY=-1;
+  for(let y=31;y>=0&&maxY<0;y--)for(let x=0;x<32;x++)if(buf[(y*32+x)*4+3]){maxY=y;break;}
+  if(maxY<0)return buf;
+  const shift=clamp(Math.round(pivot.y-maxY),-2,2); if(!shift)return buf;
+  const out=new Uint8ClampedArray(32*32*4);
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++){
+    const si=(y*32+x)*4;if(!buf[si+3])continue;const ny=y+shift;if(ny<0||ny>=32)continue;
+    writePixelOver(out,(ny*32+x)*4,buf,si);
+  }
+  return out;
+}
+
+function generateHQFrames(base,mask,dir,s,rig=null){
+  const bounds={}; for(let p=1;p<=6;p++) bounds[p]=getPartBounds(mask,p);
+  if(rig)ensureRigDefaults(dir,base,mask);
   const frames=[];
   for(let phase=0;phase<4;phase++){
-    const pose=hqPoseFor(dir,phase,s),dst=new Uint8ClampedArray(32*32*4),bob=pose.bob;
+    const pose=hqPoseFor(dir,phase,s);
+    let dst=new Uint8ClampedArray(32*32*4);
+    const bob=pose.bob;
     const forwardLeft=pose.phaseSign>=0;
     const rearArm=forwardLeft?3:4, frontArm=forwardLeft?4:3;
     const rearLeg=forwardLeft?6:5, frontLeg=forwardLeft?5:6;
-    if(s.seamRepair){for(const p of [3,4,5,6])drawHQJointBridge(base,mask,dst,p,bounds[p],bob);}
-    drawHQPart(base,mask,dst,rearArm,{...pose[rearArm],baseY:bob},bounds[rearArm]);
-    drawHQPart(base,mask,dst,rearLeg,{...pose[rearLeg],baseY:bob},bounds[rearLeg]);
+    const partMoves={
+      3:{...pose[3],baseY:bob},
+      4:{...pose[4],baseY:bob},
+      5:{...pose[5],baseY:bob},
+      6:{...pose[6],baseY:bob}
+    };
+    if(rig)applySimpleIK(partMoves,bounds,dir,phase,rig);
+
+    if(s.seamRepair){
+      for(const p of [3,4,5,6]) drawHQJointBridge(base,mask,dst,p,bounds[p],bob);
+    }
+    const anchors=rig?.bones?{3:rig.bones.leftShoulder,4:rig.bones.rightShoulder,5:rig.bones.leftHip,6:rig.bones.rightHip}:{};
+
+    drawHQPart(base,mask,dst,rearArm,partMoves[rearArm],bounds[rearArm],anchors[rearArm]);
+    drawHQPart(base,mask,dst,rearLeg,partMoves[rearLeg],bounds[rearLeg],anchors[rearLeg]);
     drawHQPart(base,mask,dst,2,{x:0,y:0,baseY:bob},bounds[2]);
-    drawHQPart(base,mask,dst,frontLeg,{...pose[frontLeg],baseY:bob},bounds[frontLeg]);
-    drawHQPart(base,mask,dst,frontArm,{...pose[frontArm],baseY:bob},bounds[frontArm]);
-    drawHQPart(base,mask,dst,1,{x:0,y:0,baseY:s.headLock?0:bob},bounds[1]);
+    drawHQPart(base,mask,dst,frontLeg,partMoves[frontLeg],bounds[frontLeg],anchors[frontLeg]);
+    drawHQPart(base,mask,dst,frontArm,partMoves[frontArm],bounds[frontArm],anchors[frontArm]);
+    drawHQPart(base,mask,dst,1,{x:0,y:0,baseY:s.headLock?0:bob},bounds[1],rig?.bones?.neck||null);
+
+    drawHQSecondarySway(base,mask,dst,dir,bounds,pose,s);
+
     // 未分類ピクセルは元位置を維持して特徴消失を防ぐ
-    for(let i=0;i<1024;i++)if(mask[i]===0 && base.data[i*4+3])writePixelOver(dst,i*4,base.data,i*4);
+    for(let i=0;i<1024;i++) if(mask[i]===0 && base.data[i*4+3]) writePixelOver(dst,i*4,base.data,i*4);
+
+    // B: 輪郭優先補完
+    if(s.outlineRepair) dst=repairOutlineContinuity(dst);
+
+    // A: 関節の補完
+    if(s.seamRepair) repairJointAnchorGaps(base,mask,dst,bounds,partMoves);
+
+    // A+: 内部の穴埋め
+    if(s.holeFill) dst=fillInteriorHoles(dst);
+    if(rig?.hq?.pivotLock) dst=stabilizeGroundToPivot(dst,rig.pivot);
+
     frames.push(new ImageData(dst,32,32));
   }
   return frames;
@@ -1126,15 +1461,149 @@ async function generateHQ(dir=hqEditor.activeDir){
     // 停止画像から方向別の仮マスクを再構築して停止アニメ化を防ぐ。
     s.hq.mask=createAutoHQMask(base,dir);
   }
-  const frames=generateHQFrames(base,s.hq.mask,dir,s.hq);
+  const frames=generateHQFrames(base,s.hq.mask,dir,s.hq,state[dir]);
   const motion=hqMotionStats(frames);
   s.generated=[];
   for(let i=0;i<frames.length;i++)s.generated.push(await imageDataToItem(frames[i],`hq_${dir}_${i+1}.png`));
   renderDir(dir);await renderHQEditor();
   if(motion.max<16) toast(`${labelOf(dir)}: 動きが小さすぎます。マスクを確認してください`);
-  else toast(`${labelOf(dir)}: 高品質4コマ生成 / 最大差分 ${motion.max}px / 4姿勢化済み`);
+  else toast(`${labelOf(dir)}: 高品質4コマ生成 / 最大差分 ${motion.max}px / B輪郭→A関節→高精度歩行`);
 }
 function invalidateHQMask(dir){state[dir].hq.mask=null;if(hqEditor.activeDir===dir)renderHQEditor();}
+
+
+function studioFramesFor(dir=studio.dir,source=studio.source){
+  const s=state[dir];
+  if(source==='generated')return s.generated;
+  if(source==='extras')return s.extras;
+  return s.generated.length?s.generated:s.extras;
+}
+function studioFrames(){return studioFramesFor(studio.dir,studio.source);}
+function ensureFrameLayers(item){
+  if(!item)return [];
+  if(!Array.isArray(item.layers)||!item.layers.length)item.layers=[{name:'Base',visible:true,dataUrl:item.dataUrl,linkedId:null}];
+  return item.layers;
+}
+function transparent32DataUrl(){const c=document.createElement('canvas');c.width=32;c.height=32;return c.toDataURL('image/png');}
+async function compositeFrame(item,live=false){
+  const c=document.createElement('canvas');c.width=32;c.height=32;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;
+  const layers=ensureFrameLayers(item);
+  for(let i=0;i<layers.length;i++){
+    const L=layers[i];if(!L.visible)continue;
+    if(live && item===studioFrames()[studio.frame] && i===studio.layer){ctx.drawImage(studio.layerCanvas,0,0);continue;}
+    try{const img=await loadImage(L.dataUrl);ctx.drawImage(img,0,0,32,32);}catch(e){}
+  }
+  return c;
+}
+async function updateFrameComposite(item){if(!item)return;const c=await compositeFrame(item,false);item.dataUrl=c.toDataURL('image/png');item.width=32;item.height=32;}
+async function loadStudioLayer(){
+  const frames=studioFrames();if(!frames.length)return;
+  studio.frame=clamp(studio.frame,0,frames.length-1);const item=frames[studio.frame],layers=ensureFrameLayers(item);
+  studio.layer=clamp(studio.layer,0,layers.length-1);studio.layerCtx.clearRect(0,0,32,32);
+  try{const img=await loadImage(layers[studio.layer].dataUrl);studio.layerCtx.drawImage(img,0,0,32,32);}catch(e){}
+}
+function studioSnapshot(){
+  const s=state[studio.dir];
+  return JSON.stringify({generated:s.generated,extras:s.extras,pivot:s.pivot,bones:s.bones,tags:s.tags,hq:s.hq,frame:studio.frame,layer:studio.layer,source:studio.source});
+}
+function pushStudioHistory(){studio.history.undo.push(studioSnapshot());if(studio.history.undo.length>20)studio.history.undo.shift();studio.history.redo=[];}
+async function restoreStudioSnapshot(raw){
+  const x=JSON.parse(raw),s=state[studio.dir];s.generated=x.generated;s.extras=x.extras;s.pivot=x.pivot;s.bones=x.bones;s.tags=x.tags;s.hq=x.hq;studio.frame=x.frame||0;studio.layer=x.layer||0;studio.source=x.source||'auto';$('#studioSource').value=studio.source;await loadStudioLayer();renderDir(studio.dir);await renderStudio();
+}
+async function studioUndo(){if(!studio.history.undo.length)return;studio.history.redo.push(studioSnapshot());await restoreStudioSnapshot(studio.history.undo.pop());}
+async function studioRedo(){if(!studio.history.redo.length)return;studio.history.undo.push(studioSnapshot());await restoreStudioSnapshot(studio.history.redo.pop());}
+function hexToRGBA(hex){const h=hex.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16),255];}
+function rgbaToHex(c){return '#'+c.slice(0,3).map(v=>v.toString(16).padStart(2,'0')).join('');}
+function nearestPaletteColor(rgba){
+  if(!studio.paletteLock||!studio.palette.length)return rgba;let best=studio.palette[0],bd=1e9;
+  for(const c of studio.palette){const d=(c[0]-rgba[0])**2+(c[1]-rgba[1])**2+(c[2]-rgba[2])**2;if(d<bd){bd=d;best=c;}}return [best[0],best[1],best[2],255];
+}
+async function refreshStudioPalette(){
+  const map=new Map();
+  const items=[];for(const d of dirs){if(state[d.id].idle)items.push(state[d.id].idle);}items.push(...studioFrames());
+  for(const it of items){try{const img=await loadImage(it.dataUrl);const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);const dat=ctx.getImageData(0,0,c.width,c.height).data;for(let i=0;i<dat.length;i+=4){if(dat[i+3]<128)continue;const k=`${dat[i]},${dat[i+1]},${dat[i+2]}`;map.set(k,(map.get(k)||0)+1);}}catch(e){}
+  }
+  studio.palette=[...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,32).map(([k])=>[...k.split(',').map(Number),255]);
+  renderStudioPalette();
+}
+function renderStudioPalette(){const box=$('#studioPalette');if(!box)return;box.innerHTML=studio.palette.map((c,i)=>`<button class="paletteSwatch" data-palette="${i}" style="background:${rgbaToHex(c)}" title="${rgbaToHex(c)}"></button>`).join('');}
+function studioPoint(e){const c=$('#studioCanvas'),r=c.getBoundingClientRect();return{x:clamp(Math.floor((e.clientX-r.left)/r.width*32),0,31),y:clamp(Math.floor((e.clientY-r.top)/r.height*32),0,31)};}
+async function commitStudioLayer(){
+  const frames=studioFrames();if(!frames.length)return;const item=frames[studio.frame],layers=ensureFrameLayers(item),L=layers[studio.layer];L.dataUrl=studio.layerCanvas.toDataURL('image/png');
+  if(L.linkedId){for(const f of frames){const ls=ensureFrameLayers(f);for(const l of ls)if(l.linkedId===L.linkedId)l.dataUrl=L.dataUrl;await updateFrameComposite(f);}}
+  else await updateFrameComposite(item);
+  renderDir(studio.dir);await renderStudioTimeline();await renderStudioEditor();
+}
+function putStudioPixel(x,y,rgba){const d=studio.layerCtx.getImageData(x,y,1,1);d.data.set(rgba);studio.layerCtx.putImageData(d,x,y);}
+async function editStudioAt(e){
+  const p=studioPoint(e),s=state[studio.dir];
+  if(studio.tool==='pivot'){s.pivot={x:p.x,y:p.y};await renderStudioEditor();return;}
+  if(studio.tool==='bone'){ensureRigDefaults(studio.dir);const name=$('#studioBone').value;s.bones[name]={x:p.x,y:p.y};await renderStudioEditor();return;}
+  const pix=studio.layerCtx.getImageData(p.x,p.y,1,1).data;
+  if(studio.tool==='eyedrop'){if(pix[3]){studio.color=rgbaToHex(pix);$('#studioColor').value=studio.color;}return;}
+  if(studio.tool==='erase')putStudioPixel(p.x,p.y,[0,0,0,0]);
+  else putStudioPixel(p.x,p.y,nearestPaletteColor(hexToRGBA(studio.color)));
+  await commitStudioLayer();
+}
+async function renderStudioEditor(){
+  const c=$('#studioCanvas');if(!c)return;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,320,320);
+  const frames=studioFrames();if(!frames.length){ctx.fillStyle='#111722';ctx.fillRect(0,0,320,320);ctx.fillStyle='#9aa4b8';ctx.textAlign='center';ctx.font='15px sans-serif';ctx.fillText('編集フレームがありません',160,160);return;}
+  studio.frame=clamp(studio.frame,0,frames.length-1);
+  const drawBig=(cn,alpha=1,tint=null)=>{const t=document.createElement('canvas');t.width=32;t.height=32;const tc=t.getContext('2d');tc.imageSmoothingEnabled=false;tc.drawImage(cn,0,0);if(tint){tc.globalCompositeOperation='source-atop';tc.fillStyle=tint;tc.globalAlpha=.55;tc.fillRect(0,0,32,32);tc.globalCompositeOperation='source-over';tc.globalAlpha=1;}ctx.globalAlpha=alpha;ctx.drawImage(t,0,0,320,320);ctx.globalAlpha=1;};
+  if(studio.onion){if(studio.frame>0)drawBig(await compositeFrame(frames[studio.frame-1]),.27,'#ff4f6d');if(studio.frame<frames.length-1)drawBig(await compositeFrame(frames[studio.frame+1]),.27,'#56e28e');}
+  drawBig(await compositeFrame(frames[studio.frame],true),1,null);
+  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;for(let i=0;i<=32;i++){ctx.beginPath();ctx.moveTo(i*10+.5,0);ctx.lineTo(i*10+.5,320);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*10+.5);ctx.lineTo(320,i*10+.5);ctx.stroke();}
+  if(studio.showRig){const s=state[studio.dir];ensureRigDefaults(studio.dir);const P=s.pivot;ctx.strokeStyle='#ffe66d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(P.x*10-6,P.y*10);ctx.lineTo(P.x*10+6,P.y*10);ctx.moveTo(P.x*10,P.y*10-6);ctx.lineTo(P.x*10,P.y*10+6);ctx.stroke();const b=s.bones||{};const line=(a,z)=>{if(!a||!z)return;ctx.beginPath();ctx.moveTo(a.x*10+5,a.y*10+5);ctx.lineTo(z.x*10+5,z.y*10+5);ctx.stroke();};ctx.strokeStyle='#65d9a5';line(b.neck,b.leftShoulder);line(b.neck,b.rightShoulder);line(b.neck,b.leftHip);line(b.neck,b.rightHip);line(b.leftHip,b.leftFoot);line(b.rightHip,b.rightFoot);for(const [name,p] of Object.entries(b)){ctx.fillStyle=name===$('#studioBone')?.value?'#fff':'#65d9a5';ctx.fillRect(p.x*10+2,p.y*10+2,7,7);}}
+}
+async function renderStudioTimeline(){
+  const box=$('#studioTimeline');if(!box)return;const frames=studioFrames();if(!frames.length){box.innerHTML='<div class="empty">生成または歩行フレームを読み込んでください</div>';return;}
+  box.innerHTML=frames.map((f,i)=>`<div class="studioFrame ${i===studio.frame?'active':''}" data-studio-frame="${i}"><canvas id="studioThumb-${i}" width="32" height="32"></canvas><input data-frame-duration="${i}" type="number" min="40" max="2000" step="10" value="${frameDuration(f)}"><div class="studioFrameBtns"><button data-frame-act="left" data-index="${i}">←</button><button data-frame-act="right" data-index="${i}">→</button><button data-frame-act="dup" data-index="${i}">＋</button><button data-frame-act="del" data-index="${i}">×</button></div></div>`).join('');
+  for(let i=0;i<frames.length;i++){const cv=$(`#studioThumb-${i}`);const comp=await compositeFrame(frames[i]);cv.getContext('2d').drawImage(comp,0,0);}
+  $('#studioTagEnd').value=frames.length;
+}
+function renderStudioLayers(){
+  const frames=studioFrames(),sel=$('#studioLayer');if(!sel)return;if(!frames.length){sel.innerHTML='';return;}const layers=ensureFrameLayers(frames[studio.frame]);studio.layer=clamp(studio.layer,0,layers.length-1);sel.innerHTML=layers.map((l,i)=>`<option value="${i}">${l.linkedId?'🔗 ':''}${l.name}</option>`).join('');sel.value=String(studio.layer);$('#studioLayerVisible').checked=!!layers[studio.layer].visible;
+}
+function renderStudioTags(){const s=state[studio.dir],box=$('#studioTags');if(!box)return;box.innerHTML=(s.tags||[]).map((t,i)=>`<div class="tagChip">${esc(t.name)} ${t.start+1}-${t.end+1} ${t.mode}<button data-tag-del="${i}">×</button></div>`).join('');}
+async function renderStudio(){
+  document.querySelectorAll('[data-studio-dir]').forEach(b=>b.classList.toggle('active',b.dataset.studioDir===studio.dir));$('#studioSource').value=studio.source;$('#studioOnion').checked=studio.onion;$('#studioPaletteLock').checked=studio.paletteLock;$('#studioColor').value=studio.color;$('#studioShowRig').checked=studio.showRig;$('#studioPivotLock').checked=!!state[studio.dir].hq.pivotLock;$('#studioIK').checked=!!state[studio.dir].hq.ikEnabled;await renderStudioTimeline();renderStudioLayers();renderStudioTags();await loadStudioLayer();await renderStudioEditor();const p=state[studio.dir].pivot;$('#studioRigStatus').textContent=`Pivot ${p.x},${p.y} / IK ${state[studio.dir].hq.ikEnabled?'ON':'OFF'} / 足元固定 ${state[studio.dir].hq.pivotLock?'ON':'OFF'}`;
+}
+async function studioSelectFrame(i){studio.frame=i;studio.layer=0;await loadStudioLayer();await renderStudio();}
+async function studioFrameAction(act,i){
+  const a=studioFrames();if(!a[i])return;pushStudioHistory();if(act==='left'&&i>0){[a[i-1],a[i]]=[a[i],a[i-1]];studio.frame=i-1;}else if(act==='right'&&i<a.length-1){[a[i+1],a[i]]=[a[i],a[i+1]];studio.frame=i+1;}else if(act==='dup'&&a.length<MAX_EXTRA){a.splice(i+1,0,JSON.parse(JSON.stringify(a[i])));studio.frame=i+1;}else if(act==='del'&&a.length>1){a.splice(i,1);studio.frame=Math.min(i,a.length-1);}await loadStudioLayer();renderDir(studio.dir);await renderStudio();
+}
+async function studioAddLayer(){const f=studioFrames()[studio.frame];if(!f)return;pushStudioHistory();const ls=ensureFrameLayers(f);ls.push({name:`Layer ${ls.length+1}`,visible:true,dataUrl:transparent32DataUrl(),linkedId:null});studio.layer=ls.length-1;await loadStudioLayer();await updateFrameComposite(f);await renderStudio();}
+async function studioDeleteLayer(){const f=studioFrames()[studio.frame];if(!f)return;const ls=ensureFrameLayers(f);if(ls.length<=1)return;pushStudioHistory();ls.splice(studio.layer,1);studio.layer=Math.max(0,studio.layer-1);await updateFrameComposite(f);await loadStudioLayer();renderDir(studio.dir);await renderStudio();}
+async function studioLinkLayer(){const frames=studioFrames();if(!frames.length)return;pushStudioHistory();const base=ensureFrameLayers(frames[studio.frame])[studio.layer];const id=`cel_${Date.now()}_${studio.linkedCounter++}`;for(const f of frames){const ls=ensureFrameLayers(f);while(ls.length<=studio.layer)ls.push({name:`Layer ${ls.length+1}`,visible:true,dataUrl:transparent32DataUrl(),linkedId:null});ls[studio.layer]={...ls[studio.layer],name:base.name,visible:base.visible,dataUrl:base.dataUrl,linkedId:id};await updateFrameComposite(f);}await loadStudioLayer();renderDir(studio.dir);await renderStudio();}
+async function studioUnlinkLayer(){const f=studioFrames()[studio.frame];if(!f)return;pushStudioHistory();const L=ensureFrameLayers(f)[studio.layer];L.linkedId=null;await renderStudio();}
+async function studioApplyPivot(){
+  const frames=studioFrames();if(!frames.length)return;pushStudioHistory();
+  for(const f of frames){
+    const c=await compositeFrame(f),id=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,32,32);
+    const shifted=stabilizeGroundToPivot(id.data,state[studio.dir].pivot);
+    const o=document.createElement('canvas');o.width=32;o.height=32;o.getContext('2d').putImageData(new ImageData(shifted,32,32),0,0);
+    f.layers=[{name:'Base',visible:true,dataUrl:o.toDataURL('image/png'),linkedId:null}];f.dataUrl=f.layers[0].dataUrl;f.width=32;f.height=32;
+  }
+  studio.layer=0;await loadStudioLayer();renderDir(studio.dir);await renderStudio();toast('現在方向をPivotへ固定しました');
+}
+async function studioRigRegenerate(){
+  if(!state[studio.dir].idle){toast('停止画像が必要です');return;}pushStudioHistory();await generateHQ(studio.dir);studio.source='generated';studio.frame=0;studio.layer=0;$('#studioSource').value='generated';await loadStudioLayer();await renderStudio();
+}
+async function studioAutoRig(){const s=state[studio.dir];if(!s.idle)return;pushStudioHistory();const base=await getNormalizedImageData(s.idle);if(!s.hq.mask)s.hq.mask=createAutoHQMask(base,studio.dir);s.bones=null;ensureRigDefaults(studio.dir,base,s.hq.mask);await renderStudio();}
+async function studioAddTag(){const s=state[studio.dir],frames=studioFrames();if(!frames.length)return;pushStudioHistory();const name=$('#studioTagName').value.trim()||'walk',start=clamp((Number($('#studioTagStart').value)||1)-1,0,frames.length-1),end=clamp((Number($('#studioTagEnd').value)||frames.length)-1,0,frames.length-1),mode=$('#studioTagMode').value;s.tags=s.tags||[];s.tags.push({name,start:Math.min(start,end),end:Math.max(start,end),mode});renderStudioTags();}
+function downloadBytes(bytes,name,type){downloadBlob(new Blob([bytes],{type}),name);}
+function gifPalette(){const pal=new Uint8Array(256*3);for(let idx=1;idx<256;idx++){let q=idx===255?255:idx-1;const r=((q>>5)&7)*255/7,g=((q>>2)&7)*255/7,b=(q&3)*255/3;pal[idx*3]=Math.round(r);pal[idx*3+1]=Math.round(g);pal[idx*3+2]=Math.round(b);}return pal;}
+function gifIndex(r,g,b,a){if(a<128)return 0;const q=((r>>5)<<5)|((g>>5)<<2)|(b>>6);return q>=254?255:q+1;}
+function lzwSimple(indices){const clear=256,end=257;let bytes=[],cur=0,bits=0;const put=code=>{cur|=code<<bits;bits+=9;while(bits>=8){bytes.push(cur&255);cur>>=8;bits-=8;}};for(let s=0;s<indices.length;s+=200){put(clear);const e=Math.min(indices.length,s+200);for(let i=s;i<e;i++)put(indices[i]);}put(end);if(bits)bytes.push(cur&255);const out=[];for(let i=0;i<bytes.length;i+=255){const n=Math.min(255,bytes.length-i);out.push(n,...bytes.slice(i,i+n));}out.push(0);return Uint8Array.from(out);}
+async function exportStudioGIF(){const frames=studioFrames();if(!frames.length)return;const chunks=[],push=(...a)=>chunks.push(...a),u16=v=>[v&255,(v>>8)&255];push(...new TextEncoder().encode('GIF89a'),...u16(32),...u16(32),0xF7,0,0,...gifPalette(),0x21,0xFF,0x0B,...new TextEncoder().encode('NETSCAPE2.0'),3,1,0,0,0);for(const f of frames){const c=await compositeFrame(f),d=c.getContext('2d').getImageData(0,0,32,32).data,idx=new Uint8Array(1024);for(let i=0;i<1024;i++)idx[i]=gifIndex(d[i*4],d[i*4+1],d[i*4+2],d[i*4+3]);const delay=Math.max(1,Math.round(frameDuration(f)/10));push(0x21,0xF9,4,0x09,...u16(delay),0,0,0x2C,0,0,0,0,...u16(32),...u16(32),0,8,...lzwSimple(idx));}push(0x3B);downloadBytes(Uint8Array.from(chunks),`${studio.dir}.gif`,'image/gif');}
+function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
+function be32(v){return new Uint8Array([(v>>>24)&255,(v>>>16)&255,(v>>>8)&255,v&255]);}function be16(v){return new Uint8Array([(v>>>8)&255,v&255]);}
+function concatBytes(arrs){let n=arrs.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n),p=0;for(const a of arrs){o.set(a,p);p+=a.length;}return o;}
+function pngChunk(type,data){const t=new TextEncoder().encode(type),crc=be32(crc32(concatBytes([t,data])));return concatBytes([be32(data.length),t,data,crc]);}
+async function deflateBytes(raw){const cs=new CompressionStream('deflate'),w=cs.writable.getWriter();w.write(raw);w.close();return new Uint8Array(await new Response(cs.readable).arrayBuffer());}
+async function apngFrameData(canvas){const d=canvas.getContext('2d').getImageData(0,0,32,32).data,raw=new Uint8Array((32*4+1)*32);let p=0;for(let y=0;y<32;y++){raw[p++]=0;raw.set(d.slice(y*32*4,(y+1)*32*4),p);p+=128;}return await deflateBytes(raw);}
+async function exportStudioAPNG(){if(typeof CompressionStream==='undefined'){toast('このブラウザはAPNG圧縮に未対応です');return;}const frames=studioFrames();if(!frames.length)return;const sig=Uint8Array.from([137,80,78,71,13,10,26,10]),ihdr=concatBytes([be32(32),be32(32),Uint8Array.from([8,6,0,0,0])]),chunks=[sig,pngChunk('IHDR',ihdr),pngChunk('acTL',concatBytes([be32(frames.length),be32(0)]))];let seq=0;for(let i=0;i<frames.length;i++){const delay=Math.max(1,Math.min(65535,frameDuration(frames[i]))),fc=concatBytes([be32(seq++),be32(32),be32(32),be32(0),be32(0),be16(delay),be16(1000),Uint8Array.from([0,0])]);chunks.push(pngChunk('fcTL',fc));const comp=await apngFrameData(await compositeFrame(frames[i]));if(i===0)chunks.push(pngChunk('IDAT',comp));else chunks.push(pngChunk('fdAT',concatBytes([be32(seq++),comp])));}chunks.push(pngChunk('IEND',new Uint8Array()));downloadBytes(concatBytes(chunks),`${studio.dir}.png`,'image/png');}
+async function exportStudioGame(){let max=0;for(const d of dirs)max=Math.max(max,studioFramesFor(d.id,studio.source).length);if(!max)return;const c=document.createElement('canvas');c.width=max*32;c.height=4*32;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;const meta={version:1,cell:32,order:dirs.map(d=>d.id),directions:{},palette:studio.palette.map(rgbaToHex)};for(let r=0;r<dirs.length;r++){const id=dirs[r].id,fs=studioFramesFor(id,studio.source);meta.directions[id]={pivot:state[id].pivot,bones:state[id].bones,tags:state[id].tags,frames:[]};for(let i=0;i<fs.length;i++){const fc=await compositeFrame(fs[i]);ctx.drawImage(fc,i*32,r*32);meta.directions[id].frames.push({x:i*32,y:r*32,w:32,h:32,duration:frameDuration(fs[i]),layers:ensureFrameLayers(fs[i]).map(l=>({name:l.name,visible:l.visible,linkedId:l.linkedId||null}))});}}downloadCanvas(c,'walk_game_sheet.png');downloadBlob(new Blob([JSON.stringify(meta,null,2)],{type:'application/json'}),'walk_game_sheet.json');}
 
 function buildUI(){
   root.innerHTML = dirs.map(d => `
@@ -1395,6 +1864,7 @@ async function drawFrame(dir,index){
   await drawToAllCanvases(dir,frames[index%frames.length]);
 }
 
+function frameDuration(item){return Math.max(40,Number(item?.duration)||Number(durationEl.value)||125);}
 function play(dir){
   const frames=activeFrames(dir);
   if(!frames.length){ toast(`${labelOf(dir)}: 再生する歩行フレームがありません`); return; }
@@ -1404,11 +1874,12 @@ function play(dir){
   drawFrame(dir,0);
   const tick=()=>{
     if(!s.playing)return;
-    s.index=(s.index+1)%activeFrames(dir).length;
+    const frames=activeFrames(dir); if(!frames.length)return;
+    s.index=(s.index+1)%frames.length;
     drawFrame(dir,s.index);
-    s.timer=setTimeout(tick,Math.max(40,Number(durationEl.value)||125));
+    s.timer=setTimeout(tick,frameDuration(frames[s.index]));
   };
-  s.timer=setTimeout(tick,Math.max(40,Number(durationEl.value)||125));
+  s.timer=setTimeout(tick,frameDuration(frames[0]));
 }
 function stop(dir,showIdle=true){
   const s=state[dir];
@@ -1439,6 +1910,7 @@ function renderDir(dir){
   drawSpriteMini(dir);
   updateSpriteCounts();
   if(hqEditor.activeDir===dir) renderHQEditor();
+  if(studio.dir===dir) renderStudio();
 }
 
 function renderStrip(dir,key,items,isGenerated){
@@ -1547,7 +2019,7 @@ function saveProject(){
   };
   dirs.forEach(d=>{
     const s=state[d.id];
-    payload.directions[d.id]={idle:s.idle,extras:s.extras,generated:s.generated,auto:s.auto,hq:s.hq};
+    payload.directions[d.id]={idle:s.idle,extras:s.extras,generated:s.generated,auto:s.auto,hq:s.hq,pivot:s.pivot,bones:s.bones,tags:s.tags};
   });
   downloadBlob(new Blob([JSON.stringify(payload)],{type:'application/json'}),'walk_animator_B_project.json');
   toast('プロジェクトJSONを保存しました');
@@ -1564,7 +2036,10 @@ async function loadProject(file){
       state[d.id].extras=Array.isArray(x.extras)?x.extras.slice(0,MAX_EXTRA):[];
       state[d.id].generated=Array.isArray(x.generated)?x.generated.slice(0,AUTO_FRAMES):[];
       state[d.id].auto={headLock:true,step:1,arm:1,...(x.auto||{})};
-      state[d.id].hq={mask:null,step:1,arm:1,bob:1,headLock:true,seamRepair:true,...(x.hq||{})};
+      state[d.id].hq={mask:null,step:1,arm:1,bob:1,sway:1,headLock:true,seamRepair:true,outlineRepair:true,holeFill:true,smartMotion:true,pivotLock:true,ikEnabled:true,...(x.hq||{})};
+      state[d.id].pivot=x.pivot||{x:16,y:29};
+      state[d.id].bones=x.bones||null;
+      state[d.id].tags=Array.isArray(x.tags)?x.tags:[{name:'walk',start:0,end:3,mode:'loop'}];
       if(state[d.id].hq.mask && !Array.isArray(state[d.id].hq.mask)) state[d.id].hq.mask=Array.from(state[d.id].hq.mask);
       const sec=$(`#sec-${d.id}`);
       sec.querySelector('[data-setting="headLock"]').checked=!!state[d.id].auto.headLock;
@@ -1719,17 +2194,46 @@ $('#hqClearMask').onclick=async()=>{const s=state[hqEditor.activeDir];s.hq.mask=
 $('#hqErase').onclick=()=>{hqEditor.erase=!hqEditor.erase;syncHQControls();};
 $('#hqBrush').onchange=e=>{hqEditor.brush=Number(e.target.value)||1;};
 $('#hqShowMask').onchange=e=>{hqEditor.showMask=!!e.target.checked;renderHQEditor();};
+$('#hqOutlineRepair').onchange=e=>{state[hqEditor.activeDir].hq.outlineRepair=!!e.target.checked;};
 $('#hqSeamRepair').onchange=e=>{state[hqEditor.activeDir].hq.seamRepair=!!e.target.checked;};
+$('#hqHoleFill').onchange=e=>{state[hqEditor.activeDir].hq.holeFill=!!e.target.checked;};
+$('#hqSmartMotion').onchange=e=>{state[hqEditor.activeDir].hq.smartMotion=!!e.target.checked;};
 $('#hqHeadLock').onchange=e=>{state[hqEditor.activeDir].hq.headLock=!!e.target.checked;};
 $('#hqStep').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.step=Number(e.target.value);$('#hqStepValue').textContent=`${s.hq.step}px`;};
 $('#hqArm').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.arm=Number(e.target.value);$('#hqArmValue').textContent=`${s.hq.arm}px`;};
 $('#hqBob').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.bob=Number(e.target.value);$('#hqBobValue').textContent=`${s.hq.bob}px`;};
+$('#hqSway').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.sway=Number(e.target.value);$('#hqSwayValue').textContent=`${s.hq.sway}px`;};
 $('#hqGenerate').onclick=()=>generateHQ(hqEditor.activeDir);
 const hqCanvas=$('#hqMaskCanvas');
-hqCanvas.addEventListener('pointerdown',async e=>{e.preventDefault();const base=await ensureHQBase(hqEditor.activeDir);if(!base)return;const s=state[hqEditor.activeDir];if(!s.hq.mask)s.hq.mask=createAutoHQMask(base,dir);hqEditor.painting=true;hqCanvas.setPointerCapture?.(e.pointerId);const p=hqPointFromEvent(e);paintHQAt(p.x,p.y);renderHQEditor();});
+hqCanvas.addEventListener('pointerdown',async e=>{e.preventDefault();const base=await ensureHQBase(hqEditor.activeDir);if(!base)return;const s=state[hqEditor.activeDir];if(!s.hq.mask)s.hq.mask=createAutoHQMask(base,hqEditor.activeDir);hqEditor.painting=true;hqCanvas.setPointerCapture?.(e.pointerId);const p=hqPointFromEvent(e);paintHQAt(p.x,p.y);renderHQEditor();});
 hqCanvas.addEventListener('pointermove',e=>{if(!hqEditor.painting)return;e.preventDefault();const p=hqPointFromEvent(e);paintHQAt(p.x,p.y);renderHQEditor();});
 hqCanvas.addEventListener('pointerup',e=>{hqEditor.painting=false;hqCanvas.releasePointerCapture?.(e.pointerId);renderHQEditor();});
 hqCanvas.addEventListener('pointercancel',()=>{hqEditor.painting=false;});
+
+
+// Animation Studio
+$('#studioUndo').onclick=studioUndo; $('#studioRedo').onclick=studioRedo;
+$('#studioSource').onchange=async e=>{studio.source=e.target.value;studio.frame=0;studio.layer=0;await loadStudioLayer();await renderStudio();};
+$('#studioColor').oninput=e=>{studio.color=e.target.value;};
+$('#studioOnion').onchange=e=>{studio.onion=!!e.target.checked;renderStudioEditor();};
+$('#studioPaletteLock').onchange=e=>{studio.paletteLock=!!e.target.checked;};
+$('#studioRefreshPalette').onclick=refreshStudioPalette;
+$('#studioLayer').onchange=async e=>{studio.layer=Number(e.target.value)||0;await loadStudioLayer();renderStudioLayers();renderStudioEditor();};
+$('#studioLayerVisible').onchange=async e=>{const f=studioFrames()[studio.frame];if(!f)return;pushStudioHistory();ensureFrameLayers(f)[studio.layer].visible=!!e.target.checked;await updateFrameComposite(f);renderDir(studio.dir);await renderStudio();};
+$('#studioAddLayer').onclick=studioAddLayer;$('#studioDeleteLayer').onclick=studioDeleteLayer;$('#studioLinkLayer').onclick=studioLinkLayer;$('#studioUnlinkLayer').onclick=studioUnlinkLayer;
+$('#studioAutoRig').onclick=studioAutoRig;$('#studioApplyPivot').onclick=studioApplyPivot;$('#studioRigRegenerate').onclick=studioRigRegenerate;$('#studioShowRig').onchange=e=>{studio.showRig=!!e.target.checked;renderStudioEditor();};
+$('#studioPivotLock').onchange=e=>{state[studio.dir].hq.pivotLock=!!e.target.checked;renderStudio();};$('#studioIK').onchange=e=>{state[studio.dir].hq.ikEnabled=!!e.target.checked;renderStudio();};
+$('#studioAddTag').onclick=studioAddTag;$('#studioExportGIF').onclick=exportStudioGIF;$('#studioExportAPNG').onclick=exportStudioAPNG;$('#studioExportGame').onclick=exportStudioGame;
+document.querySelectorAll('[data-studio-dir]').forEach(b=>b.onclick=async()=>{studio.dir=b.dataset.studioDir;studio.frame=0;studio.layer=0;studio.history={undo:[],redo:[]};await loadStudioLayer();await renderStudio();});
+document.querySelectorAll('[data-studio-tool]').forEach(b=>b.onclick=()=>{studio.tool=b.dataset.studioTool;document.querySelectorAll('[data-studio-tool]').forEach(x=>x.classList.toggle('active',x===b));});
+$('#studioPalette').addEventListener('click',e=>{const b=e.target.closest('[data-palette]');if(!b)return;const c=studio.palette[Number(b.dataset.palette)];if(c){studio.color=rgbaToHex(c);$('#studioColor').value=studio.color;}});
+$('#studioTimeline').addEventListener('click',async e=>{const act=e.target.closest('[data-frame-act]');if(act){await studioFrameAction(act.dataset.frameAct,Number(act.dataset.index));return;}const card=e.target.closest('[data-studio-frame]');if(card)await studioSelectFrame(Number(card.dataset.studioFrame));});
+$('#studioTimeline').addEventListener('change',e=>{const inp=e.target.closest('[data-frame-duration]');if(!inp)return;const f=studioFrames()[Number(inp.dataset.frameDuration)];if(f){pushStudioHistory();f.duration=Math.max(40,Number(inp.value)||125);}});
+$('#studioTags').addEventListener('click',e=>{const b=e.target.closest('[data-tag-del]');if(!b)return;pushStudioHistory();state[studio.dir].tags.splice(Number(b.dataset.tagDel),1);renderStudioTags();});
+const studioCanvas=$('#studioCanvas');
+studioCanvas.addEventListener('pointerdown',async e=>{e.preventDefault();if(!studioFrames().length)return;pushStudioHistory();studio.painting=true;studioCanvas.setPointerCapture?.(e.pointerId);await editStudioAt(e);});
+studioCanvas.addEventListener('pointermove',async e=>{if(!studio.painting||!['pencil','erase'].includes(studio.tool))return;e.preventDefault();await editStudioAt(e);});
+studioCanvas.addEventListener('pointerup',e=>{studio.painting=false;studioCanvas.releasePointerCapture?.(e.pointerId);});studioCanvas.addEventListener('pointercancel',()=>studio.painting=false);
 
 // スプライトシートから4方向の基準画像を選ぶ
 $('#spriteSheetInput').onchange=e=>{
@@ -1869,6 +2373,8 @@ $('#pixelGridMode').value=spritePicker.pixelGridMode;
 $('#bulkCount').value=spritePicker.bulk.count; $('#bulkAxis').value=spritePicker.bulk.axis;
 updatePixelGridStatus();
 updateSpriteCounts();
+refreshStudioPalette();
+renderStudio();
 setSpriteActiveDir('front');
 setSpriteMode('idle');
 setInteractionMode('select');
