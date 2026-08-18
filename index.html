@@ -1,106 +1,1373 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Phase3 ドット絵合成ツール＋実機エディタ</title>
-<link rel="stylesheet" href="css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0d0f14">
+<title>32×32 Walk Animator B v7</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0d0f14;--panel:#171a22;--panel2:#202531;--line:#343b4c;
+  --text:#f4f6fb;--sub:#aeb7ca;--accent:#8f79ff;--good:#65d9a5;
+  --warn:#f1c86a;--danger:#ff7287;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(24px,env(safe-area-inset-bottom))}
+button,input,select{font:inherit}
+button,.fileLabel,select,input[type=number],input[type=range]{
+  min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text)
+}
+button{padding:10px 12px;font-weight:800}
+button.primary{background:var(--accent);border-color:transparent}
+button.good{background:#1c493d;border-color:#316958;color:#eafff7}
+button.danger{color:#ffdce2;border-color:#71414a}
+button.small{min-height:34px;padding:5px 8px;font-size:12px;border-radius:9px}
+button:disabled{opacity:.35}
+.wrap{max-width:780px;margin:0 auto}
+header{padding:8px 2px 12px}
+h1{font-size:22px;margin:0 0 5px}
+.lead{font-size:13px;line-height:1.55;color:var(--sub);margin:0}
+.panel,.direction{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--sub)}
+input[type=number],select{width:100%;padding:8px 9px}
+.notice{font-size:12px;line-height:1.55;color:#c7d1e4;background:#111722;border:1px solid #293448;border-radius:11px;padding:9px;margin-top:9px}
+.dirHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.dirName{font-size:19px;font-weight:900}
+.badge{font-size:11px;color:var(--sub)}
+.previewWrap{display:flex;justify-content:center;align-items:center;min-height:214px;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+background:
+linear-gradient(45deg,#1a1e27 25%,transparent 25%) 0 0/16px 16px,
+linear-gradient(45deg,transparent 75%,#1a1e27 75%) 0 0/16px 16px,
+linear-gradient(45deg,transparent 75%,#1a1e27 75%) 8px -8px/16px 16px,
+linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
+.preview{width:192px;height:192px;image-rendering:pixelated;image-rendering:crisp-edges}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin:9px 0}
+.loaders{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fileLabel{display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:13px;font-weight:850}
+.fileLabel input{display:none}
+.idleBox{display:flex;gap:8px;align-items:center;border:1px dashed var(--line);border-radius:12px;padding:7px;margin-top:8px;min-height:62px}
+.idleThumb,.frameThumb{image-rendering:pixelated;image-rendering:crisp-edges;background:#0b0d12;border-radius:8px}
+.idleThumb{width:48px;height:48px;flex:none}
+.meta{min-width:0;flex:1}
+.name{font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.framesTitle{font-size:12px;color:var(--sub);margin:11px 0 6px}
+.strip{display:flex;gap:7px;overflow-x:auto;padding:1px 0 7px;min-height:104px}
+.card{flex:0 0 82px;background:#10131a;border:1px solid var(--line);border-radius:11px;padding:5px}
+.card.generated{border-color:#375f55}
+.thumbWrap{height:66px;display:flex;align-items:center;justify-content:center;background:#0b0d12;border-radius:8px}
+.frameThumb{width:64px;height:64px}
+.cardName{font-size:9px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.cardBtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-top:4px}
+.cardBtns button{min-height:28px;padding:2px;font-size:11px;border-radius:7px}
+.empty{font-size:12px;color:#7d879a;padding:20px 5px}
+.autoBox{margin-top:9px;border:1px solid #2f3a4c;background:#121722;border-radius:12px;padding:9px}
+.autoHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.autoTitle{font-size:13px;font-weight:850}
+.toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--sub)}
+.sliderRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sliderLabel{font-size:11px;color:var(--sub);display:flex;flex-direction:column;gap:4px}
+input[type=range]{width:100%;padding:0;min-height:34px}
+.exportGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status{
+ position:fixed;z-index:99;left:50%;bottom:max(16px,env(safe-area-inset-bottom));
+ transform:translateX(-50%) translateY(16px);opacity:0;transition:.18s;
+ background:#2b3140;color:#fff;border:1px solid #4a5367;border-radius:999px;
+ padding:10px 14px;font-size:12px;pointer-events:none;text-align:center;max-width:90%
+}
+.status.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modeLine{font-size:11px;color:var(--sub);margin-top:6px}
+.speedBox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.speedPresets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.speedPresets button{min-height:40px;padding:8px 6px;font-size:12px}
+.valueHint{font-size:11px;color:var(--sub);margin-top:4px}
+.overviewGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.overviewCard{background:#10131a;border:1px solid var(--line);border-radius:14px;padding:10px}
+.overviewTitle{font-size:13px;font-weight:900;margin-bottom:6px}
+.overviewWrap{display:flex;justify-content:center;align-items:center;min-height:170px;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+background:
+linear-gradient(45deg,#1a1e27 25%,transparent 25%) 0 0/16px 16px,
+linear-gradient(45deg,transparent 75%,#1a1e27 75%) 0 0/16px 16px,
+linear-gradient(45deg,transparent 75%,#1a1e27 75%) 8px -8px/16px 16px,
+linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
+.overviewCanvas{width:144px;height:144px;image-rendering:pixelated;image-rendering:crisp-edges}
+.spritePickerPanel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
+.spritePickerTop{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.spriteDirButtons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:9px 0}
+.spriteDirButtons button.active{background:var(--accent);border-color:transparent}
+.spriteModeButtons{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.spriteModeButtons button.active{background:#245e50;border-color:#3a8a75;color:#effff9}
+.spriteCounts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px}
+.spriteCount{font-size:10px;color:var(--sub);text-align:center;background:#10131a;border:1px solid var(--line);border-radius:8px;padding:5px 3px}
+.spriteScroll{overflow:auto;max-height:56vh;border:1px solid var(--line);border-radius:14px;background:#0b0d12;padding:8px;touch-action:none}
+.spriteStage{position:relative;display:inline-block;min-width:100%;min-height:180px;text-align:left}
+#spriteSheetCanvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;max-width:none;touch-action:none}
+.spriteHint{font-size:12px;color:var(--sub);line-height:1.5;margin:7px 0}
+.cropFields{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.cropFields label{font-size:10px;color:var(--sub);display:flex;flex-direction:column;gap:3px}
+.cropFields input{width:100%;min-height:38px;padding:6px 7px}
+.spriteActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:8px}
+.spriteMiniGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
+.spriteMini{background:#10131a;border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center}
+.spriteMini canvas{width:56px;height:56px;image-rendering:pixelated;image-rendering:crisp-edges;background:#0b0d12;border-radius:7px}
+.spriteMini .miniLabel{font-size:10px;color:var(--sub);margin-bottom:4px}
+
+.toolMiniPanel{margin-top:8px;background:#10131a;border:1px solid var(--line);border-radius:12px;padding:8px}
+.toolMiniTitle{font-size:12px;font-weight:850;margin-bottom:6px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 2fr;gap:6px}
+.pixelGridRow{display:grid;grid-template-columns:1fr 1fr;gap:7px;align-items:end}
+.pixelGridStatus{min-height:44px;display:flex;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0d1118;color:var(--sub);font-size:11px;line-height:1.45}
+.nudgeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:7px}
+.nudgeGrid button{min-height:38px;padding:6px;font-size:12px}
+.checkLabel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);background:#0d1118;border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:44px}
+.spriteCanvasHint{font-size:11px;color:var(--sub);margin-top:6px}
+.quickTools{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.smallNotice{font-size:11px;color:var(--sub);line-height:1.55;margin-top:7px}
+@media(max-width:480px){
+  .grid3{grid-template-columns:1fr}
+  .pixelGridRow{grid-template-columns:1fr}
+  .quickTools{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .actions{grid-template-columns:1fr 1fr}
+  .actions .wide{grid-column:1/-1}
+  .preview{width:176px;height:176px}
+  .previewWrap{min-height:196px}
+  .grid4{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body>
-<div class="panels">
-<h2>Phase 3 ドット絵合成ツール</h2>
+<div class="wrap">
+<header>
+  <h1>32×32 Walk Animator B v7</h1>
+  <p class="lead">停止画像1枚を基準にし、追加歩行画像は各向き最大10枚。追加画像がなくても、AIを使わず4コマ歩行を簡易生成できます。</p>
+</header>
 
-<div class="preview-wrap">
-    <canvas id="mainCanvas" width="32" height="32"></canvas>
-</div>
-
-<!-- 通常モードのボタン -->
-<div class="btn-row" id="normalBar">
-    <button class="btn-rand" onclick="randomize()">🎲 ランダム</button>
-    <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
-    <button class="btn-edit" onclick="enterEdit()">✏️ 編集</button>
-</div>
-
-<!-- 編集モードのツールバー（初期非表示） -->
-<div id="editBar" style="display:none;">
-    <div class="edit-tools">
-        <button class="edit-tool on" data-tool="pen" onclick="setTool('pen')">✏️ペン</button>
-        <button class="edit-tool" data-tool="eyedrop" onclick="setTool('eyedrop')">💧スポイト</button>
-        <button class="edit-tool" data-tool="eraser" onclick="setTool('eraser')">⬜消し</button>
-        <button class="edit-misc" onclick="undoEdit()">↶戻る</button>
-        <button class="edit-misc" onclick="clearEdit()">🗑全消し</button>
+<section class="panel">
+  <div class="grid2">
+    <label class="label">プレビュー方式
+      <select id="playMode">
+        <option value="auto">自動生成を優先</option>
+        <option value="loaded">追加歩行画像を優先</option>
+      </select>
+    </label>
+    <label class="label">1コマ時間（ms）
+      <input id="duration" type="number" min="40" max="1000" step="5" value="125">
+      <div class="valueHint">数値が大きいほどゆっくり再生</div>
+    </label>
+  </div>
+  <div class="speedBox">
+    <label class="label">スピードスライダー
+      <input id="speedRange" type="range" min="40" max="400" step="5" value="125">
+      <div class="valueHint">現在: <span id="speedLabel">125ms</span></div>
+    </label>
+    <div class="label">かんたん速度切替
+      <div class="speedPresets">
+        <button id="speedNormal" type="button">標準</button>
+        <button id="speedSlow" type="button">ゆっくり</button>
+        <button id="speedVerySlow" type="button">かなりゆっくり</button>
+      </div>
     </div>
-    <div class="edit-colorrow">
-        <span class="cur-color-wrap">現在色<span id="curColor"></span></span>
-        <input type="color" id="colorPick" value="#2a2422" onchange="setColor(this.value)">
-    </div>
-    <div class="edit-swatches" id="editSwatches"></div>
-    <div class="save-row">
-        <label class="save-lbl">登録先
-            <select id="saveCat">
-                <option value="hair">髪型</option>
-                <option value="eyes">顔</option>
-                <option value="tops">トップス</option>
-                <option value="bottoms">ボトムス</option>
-                <option value="shoes">靴</option>
-                <option value="weapon">武器</option>
-                <option value="shield">盾</option>
-            </select>
-        </label>
-        <label class="save-lbl">ID
-            <input type="text" id="saveId" placeholder="例:Mohawk" maxlength="16">
-        </label>
-        <label class="save-lbl save-diff">
-            <input type="checkbox" id="saveDiff" checked>差分のみ
-        </label>
-    </div>
-    <div class="btn-row">
-        <button class="btn-save" onclick="exportJS()">📋 登録コード書き出し</button>
-        <button class="btn-save" onclick="saveImage()">💾 PNG保存</button>
-        <button class="btn-rand" onclick="exitEdit()">✓ 完了</button>
-    </div>
-    <textarea id="jsOut" readonly placeholder="登録コードがここに出ます（①パーツファイル ②config.js の2か所に貼る・自動コピー）" style="display:none;"></textarea>
-</div>
+  </div>
+  <div class="grid2" style="margin-top:8px">
+    <button id="playAll" class="primary">全方向を再生</button>
+    <button id="stopAll">全方向を停止</button>
+  </div>
+  <div class="notice">
+    推奨は「停止画像1枚 + 追加画像0〜10枚」です。通常の歩行なら4〜6枚で十分ですが、最大10枚にしておくと細かい歩行や別モーションにも流用できます。
+  </div>
+</section>
 
-<!-- パネルは engine.js が CATEGORIES から自動生成してここに入れる -->
-<div id="panelRoot"></div>
+<section class="spritePickerPanel">
+  <div style="font-weight:900;margin-bottom:4px">スプライトシートから停止・歩行フレームを指定</div>
+  <div class="spriteHint">
+    ①スプライト画像を読み込む → ②方向を選ぶ → ③停止または歩行を選ぶ → ④画像上をドラッグ。
+    選択は常に元画像の1px単位。1pxグリッドはAUTO / ON / OFFで切り替えられます。
+  </div>
 
-<div class="info">
-    <span style="color:#aaa">見下ろし視点・コンパクト体型 / 編集モードで実機ドット打ち可</span><br>
-    <span style="color:#ff6b6b">■</span> 武器JT X=8,Y=21&nbsp;
-    <span style="color:#4dabf7">■</span> 盾JT X=23,Y=21
-</div>
-</div>
+  <div class="spritePickerTop">
+    <label class="fileLabel">スプライト画像を選ぶ
+      <input id="spriteSheetInput" type="file" accept="image/png,image/webp,image/jpeg">
+    </label>
+    <label class="label">表示倍率
+      <select id="spriteZoom">
+        <option value="1">1×</option>
+        <option value="2" selected>2×</option>
+        <option value="3">3×</option>
+        <option value="4">4×</option>
+        <option value="6">6×</option>
+        <option value="8">8×</option>
+      </select>
+    </label>
+  </div>
 
-<!-- 読み込み順: base→helper→各パーツ→config→engine -->
-<script src="js/base.js"></script>
-<script src="js/helper.js"></script>
-<script src="js/hair.js"></script>
-<script src="js/bottoms.js"></script>
-<script src="js/tops.js"></script>
-<script src="js/shoes.js"></script>
-<script src="js/weapon.js"></script>
-<script src="js/shield.js"></script>
-<script src="js/eyes.js"></script>
-<script src="js/config.js"></script>
-<script src="js/engine.js"></script>
+  <div class="spriteDirButtons">
+    <button type="button" class="active" data-sprite-dir="front">正面</button>
+    <button type="button" data-sprite-dir="right">右向き</button>
+    <button type="button" data-sprite-dir="left">左向き</button>
+    <button type="button" data-sprite-dir="back">後ろ向き</button>
+  </div>
+
+  <div class="spriteModeButtons">
+    <button type="button" class="active" data-sprite-mode="idle">停止画像を指定</button>
+    <button type="button" data-sprite-mode="walk">歩行フレーム追加</button>
+  </div>
+
+  <div class="spriteCounts">
+    <div class="spriteCount" id="spriteCount-front">正面 0/10</div>
+    <div class="spriteCount" id="spriteCount-right">右 0/10</div>
+    <div class="spriteCount" id="spriteCount-left">左 0/10</div>
+    <div class="spriteCount" id="spriteCount-back">後ろ 0/10</div>
+  </div>
+
+  <div class="toolMiniPanel">
+    <div class="toolMiniTitle">1pxピクセルグリッド</div>
+    <div class="pixelGridRow">
+      <label class="label">表示
+        <select id="pixelGridMode">
+          <option value="auto" selected>AUTO</option>
+          <option value="on">ON</option>
+          <option value="off">OFF</option>
+        </select>
+      </label>
+      <div id="pixelGridStatus" class="pixelGridStatus">AUTO：画像サイズと表示倍率に応じて表示します</div>
+    </div>
+    <div class="spriteCanvasHint">
+      グリッドは元画像の1ピクセルごとに表示します。選択座標はグリッド非表示時も常に1px単位です。
+      大きすぎる画像ではiPhoneの負荷を抑えるため自動的に非表示になります。
+    </div>
+  </div>
+
+  <div class="toolMiniPanel">
+    <div class="toolMiniTitle">歩行フレーム一括登録</div>
+    <div class="grid3">
+      <label class="label">コマ数<input id="bulkCount" type="number" min="1" max="10" value="4"></label>
+      <label class="label">方向<select id="bulkAxis"><option value="x">横</option><option value="y">縦</option></select></label>
+      <button id="bulkRegister" type="button" class="good">この枠から歩行を一括追加</button>
+    </div>
+  </div>
+
+  <div class="spriteScroll" id="spriteScroll">
+    <div class="spriteStage">
+      <canvas id="spriteSheetCanvas" width="1" height="1"></canvas>
+    </div>
+  </div>
+
+  <div class="cropFields">
+    <label>X<input id="cropX" type="number" min="0" value="0"></label>
+    <label>Y<input id="cropY" type="number" min="0" value="0"></label>
+    <label>W<input id="cropW" type="number" min="1" value="32"></label>
+    <label>H<input id="cropH" type="number" min="1" value="32"></label>
+  </div>
+  <div class="nudgeGrid">
+    <button type="button" data-nudge="x-" aria-label="左へ1px">← 1px</button>
+    <button type="button" data-nudge="x+" aria-label="右へ1px">1px →</button>
+    <button type="button" data-nudge="y-" aria-label="上へ1px">↑ 1px</button>
+    <button type="button" data-nudge="y+" aria-label="下へ1px">1px ↓</button>
+  </div>
+
+  <div class="spriteActions">
+    <button id="applyCrop" type="button" class="good">数値枠を登録</button>
+    <button id="undoSpriteWalk" type="button">歩行を1枚戻す</button>
+    <button id="clearSpriteSelection" type="button">選択を消す</button>
+  </div>
+
+  <div class="spriteMiniGrid">
+    <div class="spriteMini"><div class="miniLabel">正面・停止</div><canvas id="spriteMini-front" width="32" height="32"></canvas></div>
+    <div class="spriteMini"><div class="miniLabel">右・停止</div><canvas id="spriteMini-right" width="32" height="32"></canvas></div>
+    <div class="spriteMini"><div class="miniLabel">左・停止</div><canvas id="spriteMini-left" width="32" height="32"></canvas></div>
+    <div class="spriteMini"><div class="miniLabel">後ろ・停止</div><canvas id="spriteMini-back" width="32" height="32"></canvas></div>
+  </div>
+</section>
+
+<section class="panel">
+  <div style="font-weight:900;margin-bottom:9px">4方向アニメーション表示</div>
+  <div class="overviewGrid">
+    <div class="overviewCard">
+      <div class="overviewTitle">正面</div>
+      <div class="overviewWrap"><canvas id="overview-front" class="overviewCanvas" width="32" height="32"></canvas></div>
+    </div>
+    <div class="overviewCard">
+      <div class="overviewTitle">右向き</div>
+      <div class="overviewWrap"><canvas id="overview-right" class="overviewCanvas" width="32" height="32"></canvas></div>
+    </div>
+    <div class="overviewCard">
+      <div class="overviewTitle">左向き</div>
+      <div class="overviewWrap"><canvas id="overview-left" class="overviewCanvas" width="32" height="32"></canvas></div>
+    </div>
+    <div class="overviewCard">
+      <div class="overviewTitle">後ろ向き</div>
+      <div class="overviewWrap"><canvas id="overview-back" class="overviewCanvas" width="32" height="32"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<div id="directions"></div>
+
+<section class="panel">
+  <div style="font-weight:900;margin-bottom:9px">便利機能</div>
+  <div class="quickTools">
+    <button id="alignCurrent">現在方向の追加歩行を位置合わせ</button>
+    <button id="alignAll">全方向の追加歩行を位置合わせ</button>
+    <button id="flipRightToLeft">右向き → 左向きへ反転複製</button>
+    <button id="flipLeftToRight">左向き → 右向きへ反転複製</button>
+  </div>
+  <div class="smallNotice">位置合わせは停止画像を基準に、サイズ・中心・足元をそろえます。反転複製は停止画像・追加歩行・自動生成フレームをまとめてコピーします。</div>
+</section>
+
+<section class="panel">
+  <div style="font-weight:900;margin-bottom:9px">書き出し / 保存</div>
+  <div class="exportGrid">
+    <button id="exportActive" class="primary">使用中フレームをPNG</button>
+    <button id="exportIdle">停止4方向PNG</button>
+    <button id="saveProject">プロジェクトJSON</button>
+    <label class="fileLabel">JSONを読み込む<input id="loadProject" type="file" accept=".json,application/json"></label>
+    <button id="clearAll" class="danger">すべて消去</button>
+  </div>
+</section>
+</div>
+<div id="status" class="status"></div>
+
 <script>
-/* 編集パレット（よく使う色）を生成 */
-(function(){
-  const sw=[
-    ['#5a3420','輪郭'],['#f5d6ad','肌明'],['#e8bd8e','肌中'],['#c8966a','肌影'],
-    ['#2a2422','目黒'],['#f8f8fc','白'],['#4a6496','瞳青'],['#7a4c2a','瞳茶'],
-    ['#eaa890','頬'],['#8a6038','髪茶'],['#d2604a','赤'],['#62b06a','緑'],
-    ['#5a8ac0','青'],['#9a6cc8','紫'],['#e0c050','金'],['#9298a8','銀']
-  ];
-  const box=document.getElementById('editSwatches');
-  sw.forEach(([c,name])=>{
-    const b=document.createElement('button');
-    b.className='edit-swatch'; b.dataset.col=c; b.style.background=c; b.title=name;
-    b.onclick=()=>setColor(c);
-    box.appendChild(b);
+(() => {
+'use strict';
+
+const CELL = 32;
+const MAX_EXTRA = 10;
+const AUTO_FRAMES = 4;
+const dirs = [
+  {id:'front',label:'正面'},
+  {id:'right',label:'右向き'},
+  {id:'left',label:'左向き'},
+  {id:'back',label:'後ろ向き'}
+];
+
+const state = Object.fromEntries(dirs.map(d => [d.id, {
+  idle:null,
+  extras:[],
+  generated:[],
+  playing:false,
+  timer:null,
+  index:0,
+  auto:{headLock:true, step:1, arm:1}
+}]));
+
+const $ = s => document.querySelector(s);
+const root = $('#directions');
+const durationEl = $('#duration');
+const speedRangeEl = $('#speedRange');
+const speedLabelEl = $('#speedLabel');
+const playModeEl = $('#playMode');
+let toastTimer = null;
+
+const spritePicker = {
+  image:null,
+  dataUrl:null,
+  fileName:'',
+  activeDir:'front',
+  mode:'idle',
+  selections:{front:null,right:null,left:null,back:null},
+  walkSelections:{front:[],right:[],left:[],back:[]},
+  draft:null,
+  dragging:false,
+  dragStart:null,
+  dragCurrent:null,
+  zoom:2,
+  pixelGridMode:'auto',
+  bulk:{count:4,axis:'x'}
+};
+
+function toast(msg){
+  const el = $('#status');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'),1800);
+}
+function labelOf(id){ return dirs.find(d=>d.id===id)?.label || id; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function naturalSort(a,b){ return a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}); }
+
+
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+const PIXEL_GRID_HARD_MAX_DIM = 768;
+const PIXEL_GRID_HARD_MAX_AREA = 768 * 768;
+const PIXEL_GRID_AUTO_MAX_DIM = 512;
+const PIXEL_GRID_AUTO_MAX_AREA = 512 * 512;
+const PIXEL_GRID_AUTO_MIN_ZOOM = 4;
+
+function getPixelGridMode(){
+  const v=$('#pixelGridMode')?.value;
+  spritePicker.pixelGridMode = (v==='on'||v==='off') ? v : 'auto';
+  return spritePicker.pixelGridMode;
+}
+function pixelGridDecision(){
+  const img=spritePicker.image;
+  const mode=getPixelGridMode();
+  if(!img) return {show:false,reason:'画像未読み込み'};
+  const w=img.naturalWidth, h=img.naturalHeight, area=w*h;
+  const hardTooLarge = w>PIXEL_GRID_HARD_MAX_DIM || h>PIXEL_GRID_HARD_MAX_DIM || area>PIXEL_GRID_HARD_MAX_AREA;
+  if(mode==='off') return {show:false,reason:'OFF'};
+  if(hardTooLarge) return {show:false,reason:`画像が大きいため非表示（${w}×${h}）`};
+  if(mode==='on') return {show:true,reason:`ON：1pxグリッド表示（${w}×${h}）`};
+  const autoSizeOK = w<=PIXEL_GRID_AUTO_MAX_DIM && h<=PIXEL_GRID_AUTO_MAX_DIM && area<=PIXEL_GRID_AUTO_MAX_AREA;
+  const zoomOK = spritePicker.zoom>=PIXEL_GRID_AUTO_MIN_ZOOM;
+  if(autoSizeOK && zoomOK) return {show:true,reason:`AUTO：1pxグリッド表示（${spritePicker.zoom}×）`};
+  if(!autoSizeOK) return {show:false,reason:`AUTO：画像サイズが大きいため非表示（${w}×${h}）`};
+  return {show:false,reason:`AUTO：${PIXEL_GRID_AUTO_MIN_ZOOM}×以上で表示`};
+}
+function updatePixelGridStatus(){
+  const el=$('#pixelGridStatus');
+  if(!el) return;
+  const d=pixelGridDecision();
+  el.textContent=d.reason;
+}
+function getBulkConfig(){
+  spritePicker.bulk.count = clamp(Number($('#bulkCount')?.value)||4,1,MAX_EXTRA);
+  spritePicker.bulk.axis = $('#bulkAxis')?.value==='y' ? 'y' : 'x';
+  return spritePicker.bulk;
+}
+async function canvasToItem(canvas,name,extra={}){
+  return {name, dataUrl:canvas.toDataURL('image/png'), width:canvas.width, height:canvas.height, ...extra};
+}
+async function itemToTrimmedInfo(item){
+  const img=await loadImage(item.dataUrl);
+  const src=document.createElement('canvas');
+  src.width=img.naturalWidth; src.height=img.naturalHeight;
+  const sctx=src.getContext('2d',{willReadFrequently:true});
+  sctx.imageSmoothingEnabled=false; sctx.drawImage(img,0,0);
+  const id=sctx.getImageData(0,0,src.width,src.height);
+  const d=id.data;
+  let minX=src.width,minY=src.height,maxX=-1,maxY=-1;
+  for(let y=0;y<src.height;y++) for(let x=0;x<src.width;x++) if(d[(y*src.width+x)*4+3]>24){
+    if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+  }
+  if(maxX<0){ minX=0; minY=0; maxX=src.width-1; maxY=src.height-1; }
+  const bw=maxX-minX+1, bh=maxY-minY+1;
+  const crop=document.createElement('canvas'); crop.width=bw; crop.height=bh;
+  const cctx=crop.getContext('2d'); cctx.imageSmoothingEnabled=false;
+  cctx.drawImage(src,minX,minY,bw,bh,0,0,bw,bh);
+  return {crop,bw,bh};
+}
+async function alignItemToIdle(dir,item){
+  const idle=state[dir].idle;
+  if(!idle) return item;
+  const ref=await itemToTrimmedInfo(idle);
+  const cur=await itemToTrimmedInfo(item);
+  const refScale=Math.min(30/ref.bw,29/ref.bh,1);
+  const scale=Math.min(refScale,30/cur.bw,29/cur.bh,1);
+  const refDw=Math.max(1,Math.round(ref.bw*refScale));
+  const refDh=Math.max(1,Math.round(ref.bh*refScale));
+  const dw=Math.max(1,Math.round(cur.bw*scale));
+  const dh=Math.max(1,Math.round(cur.bh*scale));
+  const refDx=Math.round((32-refDw)/2);
+  const refDy=1;
+  const centerX=refDx + refDw/2;
+  const bottomY=refDy + refDh - 1;
+  const out=document.createElement('canvas'); out.width=32; out.height=32;
+  const octx=out.getContext('2d'); octx.imageSmoothingEnabled=false;
+  const dx=Math.round(centerX - dw/2);
+  const dy=Math.round(bottomY - dh + 1);
+  octx.drawImage(cur.crop,0,0,cur.bw,cur.bh,dx,dy,dw,dh);
+  return await canvasToItem(out,item.name,{fromSprite:item.fromSprite,generated:item.generated});
+}
+async function alignDirectionExtras(dir){
+  if(!state[dir].idle){ toast(`${labelOf(dir)}: 先に停止画像が必要です`); return; }
+  if(!state[dir].extras.length){ toast(`${labelOf(dir)}: 追加歩行画像がありません`); return; }
+  const aligned=[];
+  for(const item of state[dir].extras) aligned.push(await alignItemToIdle(dir,item));
+  state[dir].extras=aligned;
+  renderDir(dir);
+  toast(`${labelOf(dir)}: 位置合わせしました`);
+}
+async function alignAllDirections(){
+  for(const d of dirs){
+    if(state[d.id].idle && state[d.id].extras.length){
+      const aligned=[];
+      for(const item of state[d.id].extras) aligned.push(await alignItemToIdle(d.id,item));
+      state[d.id].extras=aligned;
+      renderDir(d.id);
+    }
+  }
+  toast('全方向の追加歩行を位置合わせしました');
+}
+async function flipItem(item){
+  const img=await loadImage(item.dataUrl);
+  const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+  const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  ctx.save(); ctx.translate(c.width,0); ctx.scale(-1,1); ctx.drawImage(img,0,0); ctx.restore();
+  return await canvasToItem(c, item.name.replace(/\.(png|webp|jpg|jpeg)$/i,'') + '_flip.png', {fromSprite:item.fromSprite,generated:item.generated});
+}
+async function flipDirection(sourceDir,targetDir){
+  const src=state[sourceDir];
+  if(!src.idle){ toast(`${labelOf(sourceDir)}: 反転元の停止画像がありません`); return; }
+  state[targetDir].idle = await flipItem(src.idle);
+  state[targetDir].extras = [];
+  for(const item of src.extras) state[targetDir].extras.push(await flipItem(item));
+  state[targetDir].generated = [];
+  for(const item of src.generated) state[targetDir].generated.push(await flipItem(item));
+  state[targetDir].auto = {...src.auto};
+  const sec=$(`#sec-${targetDir}`);
+  if(sec){
+    sec.querySelector('[data-setting="headLock"]').checked=!!state[targetDir].auto.headLock;
+    sec.querySelector('[data-setting="step"]').value=state[targetDir].auto.step;
+    sec.querySelector('[data-setting="arm"]').value=state[targetDir].auto.arm;
+    $(`#stepVal-${targetDir}`).textContent=`${state[targetDir].auto.step}px`;
+    $(`#armVal-${targetDir}`).textContent=`${state[targetDir].auto.arm}px`;
+  }
+  renderDir(targetDir);
+  toast(`${labelOf(sourceDir)}を反転して${labelOf(targetDir)}へ複製しました`);
+}
+
+function syncSpeedUI(v){
+  const value = Math.max(40, Math.min(1000, Number(v)||125));
+  durationEl.value = value;
+  if(speedRangeEl) speedRangeEl.value = Math.max(40, Math.min(400, value));
+  if(speedLabelEl) speedLabelEl.textContent = `${value}ms`;
+}
+function applySpeed(v){
+  syncSpeedUI(v);
+  dirs.forEach(d=>{ if(state[d.id].playing) play(d.id); });
+}
+
+
+function spriteDirLabel(dir){
+  return ({front:'正面',right:'右向き',left:'左向き',back:'後ろ向き'})[dir] || dir;
+}
+function spriteShort(dir){
+  return ({front:'F',right:'R',left:'L',back:'B'})[dir] || '?';
+}
+function setSpriteActiveDir(dir){
+  spritePicker.activeDir=dir;
+  document.querySelectorAll('[data-sprite-dir]').forEach(b=>b.classList.toggle('active',b.dataset.spriteDir===dir));
+  const sel = spritePicker.mode==='idle' ? spritePicker.selections[dir] : (spritePicker.draft || spritePicker.walkSelections[dir].at(-1));
+  spritePicker.draft = sel ? {...sel} : null;
+  if(sel) setCropFields(sel);
+  drawSpriteSheet();
+}
+function setSpriteMode(mode){
+  spritePicker.mode=mode;
+  document.querySelectorAll('[data-sprite-mode]').forEach(b=>b.classList.toggle('active',b.dataset.spriteMode===mode));
+  const dir=spritePicker.activeDir;
+  const sel = mode==='idle' ? spritePicker.selections[dir] : (spritePicker.draft || spritePicker.walkSelections[dir].at(-1));
+  spritePicker.draft = sel ? {...sel} : null;
+  if(sel) setCropFields(sel);
+  drawSpriteSheet();
+}
+function updateSpriteCounts(){
+  for(const dir of ['front','right','left','back']){
+    const el=$(`#spriteCount-${dir}`);
+    if(el) el.textContent=`${spriteDirLabel(dir)} ${state[dir].extras.length}/${MAX_EXTRA}`;
+  }
+}
+function setCropFields(sel){
+  $('#cropX').value=Math.round(sel.x); $('#cropY').value=Math.round(sel.y);
+  $('#cropW').value=Math.max(1,Math.round(sel.w)); $('#cropH').value=Math.max(1,Math.round(sel.h));
+}
+function readCropFields(){
+  if(!spritePicker.image) return null;
+  const iw=spritePicker.image.naturalWidth, ih=spritePicker.image.naturalHeight;
+  let x=Math.max(0,Math.round(Number($('#cropX').value)||0));
+  let y=Math.max(0,Math.round(Number($('#cropY').value)||0));
+  let w=Math.max(1,Math.round(Number($('#cropW').value)||1));
+  let h=Math.max(1,Math.round(Number($('#cropH').value)||1));
+  x=Math.min(x,Math.max(0,iw-1)); y=Math.min(y,Math.max(0,ih-1));
+  w=Math.min(w,iw-x); h=Math.min(h,ih-y);
+  return {x,y,w,h};
+}
+function normalizedRect(a,b){
+  const iw=spritePicker.image?.naturalWidth||1, ih=spritePicker.image?.naturalHeight||1;
+  let x=Math.min(a.x,b.x), y=Math.min(a.y,b.y);
+  let maxX=Math.max(a.x,b.x), maxY=Math.max(a.y,b.y);
+  x=clamp(Math.round(x),0,Math.max(0,iw-1));
+  y=clamp(Math.round(y),0,Math.max(0,ih-1));
+  maxX=clamp(Math.round(maxX),x+1,iw);
+  maxY=clamp(Math.round(maxY),y+1,ih);
+  return {x,y,w:Math.max(1,maxX-x),h:Math.max(1,maxY-y)};
+}
+function pointOnSpriteCanvas(ev){
+  const c=$('#spriteSheetCanvas'); const r=c.getBoundingClientRect();
+  if(!r.width||!r.height) return {x:0,y:0};
+  return {x:Math.max(0,Math.min(c.width,Math.round((ev.clientX-r.left)*c.width/r.width))), y:Math.max(0,Math.min(c.height,Math.round((ev.clientY-r.top)*c.height/r.height)))};
+}
+function drawSelectionBox(ctx,sel,label,active,kind='idle'){
+  if(!sel) return;
+  ctx.save();
+  ctx.lineWidth=Math.max(1,1/spritePicker.zoom);
+  const idleColor='#8f79ff', walkColor='#65d9a5';
+  ctx.strokeStyle=active?'#ffffff':(kind==='walk'?walkColor:idleColor);
+  ctx.setLineDash(active?[]:[3/spritePicker.zoom,2/spritePicker.zoom]);
+  ctx.strokeRect(sel.x+0.5,sel.y+0.5,Math.max(1,sel.w-1),Math.max(1,sel.h-1));
+  ctx.fillStyle=active?'rgba(255,255,255,.16)':(kind==='walk'?'rgba(101,217,165,.10)':'rgba(143,121,255,.10)');
+  ctx.fillRect(sel.x,sel.y,sel.w,sel.h);
+  ctx.setLineDash([]);
+  const fontPx=Math.max(7,9/spritePicker.zoom);
+  ctx.font=`bold ${fontPx}px sans-serif`; ctx.fillStyle='#fff'; ctx.textBaseline='top';
+  ctx.fillText(label,sel.x+1,sel.y+1); ctx.restore();
+}
+function drawGridOverlay(ctx){
+  const decision=pixelGridDecision();
+  updatePixelGridStatus();
+  if(!decision.show || !spritePicker.image) return;
+  const iw=spritePicker.image.naturalWidth, ih=spritePicker.image.naturalHeight;
+  ctx.save();
+  ctx.lineWidth=Math.max(0.5,0.65/spritePicker.zoom);
+  ctx.strokeStyle='rgba(255,255,255,.22)';
+  // 元画像の1ピクセル単位。線はキャンバス上では1px間隔。
+  for(let x=0;x<=iw;x++){
+    ctx.beginPath();ctx.moveTo(x+0.5,0);ctx.lineTo(x+0.5,ih);ctx.stroke();
+  }
+  for(let y=0;y<=ih;y++){
+    ctx.beginPath();ctx.moveTo(0,y+0.5);ctx.lineTo(iw,y+0.5);ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawSpriteSheet(){
+  const c=$('#spriteSheetCanvas'), ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
+  if(!spritePicker.image){ c.width=1; c.height=1; c.style.width='1px'; c.style.height='1px'; ctx.clearRect(0,0,1,1); updatePixelGridStatus(); return; }
+  const img=spritePicker.image;
+  if(c.width!==img.naturalWidth||c.height!==img.naturalHeight){ c.width=img.naturalWidth; c.height=img.naturalHeight; }
+  c.style.width=`${img.naturalWidth*spritePicker.zoom}px`; c.style.height=`${img.naturalHeight*spritePicker.zoom}px`;
+  ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(img,0,0); drawGridOverlay(ctx);
+  for(const dir of ['front','right','left','back']){
+    drawSelectionBox(ctx,spritePicker.selections[dir],`${spriteShort(dir)}S`,dir===spritePicker.activeDir && spritePicker.mode==='idle','idle');
+    spritePicker.walkSelections[dir].forEach((sel,i)=>drawSelectionBox(ctx,sel,`${spriteShort(dir)}${i+1}`,dir===spritePicker.activeDir && spritePicker.mode==='walk' && spritePicker.draft===sel,'walk'));
+  }
+  if(spritePicker.dragging && spritePicker.dragStart && spritePicker.dragCurrent){
+    const sel=normalizedRect(spritePicker.dragStart,spritePicker.dragCurrent);
+    drawSelectionBox(ctx,sel,spritePicker.mode==='idle'?`${spriteShort(spritePicker.activeDir)}S`:`${spriteShort(spritePicker.activeDir)}+`,true,spritePicker.mode);
+  }else if(spritePicker.draft){
+    drawSelectionBox(ctx,spritePicker.draft,spritePicker.mode==='idle'?`${spriteShort(spritePicker.activeDir)}S`:`${spriteShort(spritePicker.activeDir)}+`,true,spritePicker.mode);
+  }
+}
+function cropSelectionToItem(dir,sel,prefix){
+  const crop=document.createElement('canvas'); crop.width=Math.max(1,Math.round(sel.w)); crop.height=Math.max(1,Math.round(sel.h));
+  const ctx=crop.getContext('2d'); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,crop.width,crop.height);
+  ctx.drawImage(spritePicker.image,sel.x,sel.y,sel.w,sel.h,0,0,crop.width,crop.height);
+  return {name:`${spritePicker.fileName||'sprite'}_${prefix}_${dir}_${sel.x}_${sel.y}_${sel.w}x${sel.h}.png`, dataUrl:crop.toDataURL('image/png'), width:crop.width, height:crop.height, fromSprite:true};
+}
+async function cropSelectionToIdle(dir,sel){
+  if(!spritePicker.image||!sel) return;
+  state[dir].idle=cropSelectionToItem(dir,sel,'idle'); state[dir].generated=[]; spritePicker.selections[dir]={...sel}; renderDir(dir); drawSpriteMini(dir); updateSpriteCounts();
+}
+async function cropSelectionToExtra(dir,sel){
+  if(!spritePicker.image||!sel) return false;
+  if(state[dir].extras.length>=MAX_EXTRA){ toast(`${spriteDirLabel(dir)}: 追加歩行は最大${MAX_EXTRA}枚です`); return false; }
+  const n=state[dir].extras.length+1;
+  const item=cropSelectionToItem(dir,sel,`walk${n}`); state[dir].extras.push(item); spritePicker.walkSelections[dir].push({...sel}); renderDir(dir); updateSpriteCounts(); return true;
+}
+function drawSpriteMini(dir){
+  const c=$(`#spriteMini-${dir}`); if(!c) return; const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,32,32); const item=state[dir].idle; if(item) drawItem(item,c);
+}
+async function registerSpriteSelection(sel){
+  if(!spritePicker.image){ toast('先にスプライト画像を読み込んでください'); return; }
+  if(!sel) return;
+  const dir=spritePicker.activeDir; spritePicker.draft={...sel}; setCropFields(sel);
+  if(spritePicker.mode==='idle'){ await cropSelectionToIdle(dir,sel); toast(`${spriteDirLabel(dir)}の停止画像に設定`); }
+  else { const ok=await cropSelectionToExtra(dir,sel); if(ok) toast(`${spriteDirLabel(dir)}に歩行フレームを追加`); }
+  drawSpriteSheet();
+}
+async function bulkRegisterFromDraft(){
+  if(!spritePicker.image){ toast('先にスプライト画像を読み込んでください'); return; }
+  const base=spritePicker.draft || readCropFields(); if(!base){ toast('先に1枠選択してください'); return; }
+  const cfg=getBulkConfig(); const dir=spritePicker.activeDir; const remain=MAX_EXTRA-state[dir].extras.length; const count=Math.min(cfg.count,remain);
+  if(count<=0){ toast(`${spriteDirLabel(dir)}: 追加歩行は最大${MAX_EXTRA}枚です`); return; }
+  let added=0;
+  for(let i=0;i<count;i++){
+    const sel={x:base.x + (cfg.axis==='x' ? base.w*i : 0), y:base.y + (cfg.axis==='y' ? base.h*i : 0), w:base.w, h:base.h};
+    if(sel.x+sel.w > spritePicker.image.naturalWidth || sel.y+sel.h > spritePicker.image.naturalHeight) break;
+    const ok=await cropSelectionToExtra(dir,sel); if(ok) added++;
+  }
+  if(added){ spritePicker.mode='walk'; document.querySelectorAll('[data-sprite-mode]').forEach(b=>b.classList.toggle('active',b.dataset.spriteMode===spritePicker.mode)); toast(`${spriteDirLabel(dir)}に${added}枚まとめて追加しました`); }
+  drawSpriteSheet();
+}
+async function applyCurrentCrop(){
+  if(!spritePicker.image){ toast('先にスプライト画像を読み込んでください'); return; }
+  const sel=readCropFields(); if(!sel) return; await registerSpriteSelection(sel);
+}
+function undoLastSpriteWalk(){
+  const dir=spritePicker.activeDir; const sels=spritePicker.walkSelections[dir]; if(!sels.length){ toast(`${spriteDirLabel(dir)}: 戻す歩行枠がありません`); return; }
+  sels.pop();
+  for(let i=state[dir].extras.length-1;i>=0;i--){ if(state[dir].extras[i]?.fromSprite){ state[dir].extras.splice(i,1); break; } }
+  spritePicker.draft=sels.at(-1) ? {...sels.at(-1)} : null; renderDir(dir); updateSpriteCounts(); drawSpriteSheet(); toast(`${spriteDirLabel(dir)}の歩行を1枚戻しました`);
+}
+function clearCurrentSpriteSelection(){
+  const dir=spritePicker.activeDir;
+  if(spritePicker.mode==='idle'){
+    spritePicker.selections[dir]=null; spritePicker.draft=null; if(state[dir].idle?.fromSprite){ state[dir].idle=null; state[dir].generated=[]; renderDir(dir); } toast(`${spriteDirLabel(dir)}の停止選択を消しました`);
+  }else{
+    spritePicker.walkSelections[dir]=[]; spritePicker.draft=null; state[dir].extras=state[dir].extras.filter(x=>!x?.fromSprite); renderDir(dir); updateSpriteCounts(); toast(`${spriteDirLabel(dir)}のスプライト歩行枠を全消去`);
+  }
+  drawSpriteSheet();
+}
+async function loadSpriteSheetFile(file){
+  if(!file) return;
+  try{
+    const dataUrl=await fileToData(file); const img=await loadImage(dataUrl);
+    spritePicker.image=img; spritePicker.dataUrl=dataUrl; spritePicker.fileName=file.name; spritePicker.selections={front:null,right:null,left:null,back:null}; spritePicker.walkSelections={front:[],right:[],left:[],back:[]}; spritePicker.draft=null; spritePicker.dragging=false; updateSpriteCounts(); drawSpriteSheet(); toast('スプライト画像を読み込みました');
+  }catch(e){ console.error(e); toast('スプライト画像を読み込めませんでした'); }
+}
+
+function buildUI(){
+  root.innerHTML = dirs.map(d => `
+  <section class="direction" id="sec-${d.id}">
+    <div class="dirHead">
+      <div class="dirName">${d.label}</div>
+      <div class="badge" id="badge-${d.id}">停止なし / 追加0</div>
+    </div>
+
+    <div class="previewWrap">
+      <canvas id="preview-${d.id}" class="preview" width="32" height="32"></canvas>
+    </div>
+
+    <div class="actions">
+      <button class="primary" data-act="play" data-dir="${d.id}">再生</button>
+      <button data-act="stop" data-dir="${d.id}">停止</button>
+      <button class="good wide" data-act="generate" data-dir="${d.id}">停止画像から4コマ生成</button>
+    </div>
+
+    <div class="loaders">
+      <label class="fileLabel">停止画像 1枚<input type="file" data-input="idle" data-dir="${d.id}" accept="image/png,image/webp,image/jpeg"></label>
+      <label class="fileLabel">追加歩行 0〜10枚<input type="file" data-input="extra" data-dir="${d.id}" multiple accept="image/png,image/webp,image/jpeg"></label>
+    </div>
+
+    <div class="idleBox" id="idle-${d.id}"><div class="empty">停止画像を読み込んでください</div></div>
+
+    <div class="autoBox">
+      <div class="autoHead">
+        <div class="autoTitle">自動4コマ設定</div>
+        <label class="toggle"><input type="checkbox" data-setting="headLock" data-dir="${d.id}" checked> 頭を固定</label>
+      </div>
+      <div class="sliderRow">
+        <label class="sliderLabel">脚の歩幅 <span id="stepVal-${d.id}">1px</span>
+          <input type="range" data-setting="step" data-dir="${d.id}" min="1" max="2" step="1" value="1">
+        </label>
+        <label class="sliderLabel">腕の振り <span id="armVal-${d.id}">1px</span>
+          <input type="range" data-setting="arm" data-dir="${d.id}" min="0" max="2" step="1" value="1">
+        </label>
+      </div>
+      <div class="modeLine">非AI処理：停止画像のピクセルを部分マスクで移動。顔・髪・胴体中央は極力維持します。</div>
+    </div>
+
+    <div class="framesTitle">自動生成フレーム</div>
+    <div id="generated-${d.id}" class="strip"><div class="empty">まだ生成していません</div></div>
+
+    <div class="framesTitle">追加歩行フレーム（最大10枚）</div>
+    <div id="extras-${d.id}" class="strip"><div class="empty">追加歩行画像なし</div></div>
+  </section>`).join('');
+}
+
+function fileToData(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
   });
-  if(typeof syncColorUI==='function') syncColorUI();
+}
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+async function itemFromFile(file){
+  const dataUrl = await fileToData(file);
+  const img = await loadImage(dataUrl);
+  return {name:file.name,dataUrl,width:img.naturalWidth,height:img.naturalHeight};
+}
+
+async function normalizeTo32(item){
+  const img = await loadImage(item.dataUrl);
+  const src = document.createElement('canvas');
+  src.width = img.naturalWidth;
+  src.height = img.naturalHeight;
+  const sctx = src.getContext('2d',{willReadFrequently:true});
+  sctx.imageSmoothingEnabled = false;
+  sctx.drawImage(img,0,0);
+
+  const sd = sctx.getImageData(0,0,src.width,src.height);
+  const d = sd.data;
+  let minX=src.width,minY=src.height,maxX=-1,maxY=-1;
+  for(let y=0;y<src.height;y++){
+    for(let x=0;x<src.width;x++){
+      if(d[(y*src.width+x)*4+3] > 24){
+        if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX < 0){ minX=0;minY=0;maxX=src.width-1;maxY=src.height-1; }
+
+  const bw=maxX-minX+1,bh=maxY-minY+1;
+  const scale=Math.min(30/bw,29/bh,1);
+  const dw=Math.max(1,Math.round(bw*scale));
+  const dh=Math.max(1,Math.round(bh*scale));
+
+  const out=document.createElement('canvas');
+  out.width=32;out.height=32;
+  const octx=out.getContext('2d',{willReadFrequently:true});
+  octx.imageSmoothingEnabled=false;
+  octx.clearRect(0,0,32,32);
+  const dx=Math.round((32-dw)/2);
+  const dy=1;
+  octx.drawImage(src,minX,minY,bw,bh,dx,dy,dw,dh);
+  return out;
+}
+
+function getAlphaBounds(imgData){
+  const {width,height,data}=imgData;
+  let minX=width,minY=height,maxX=-1,maxY=-1;
+  for(let y=0;y<height;y++){
+    for(let x=0;x<width;x++){
+      if(data[(y*width+x)*4+3] > 0){
+        if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX<0) return {x:0,y:0,w:width,h:height,cx:width/2};
+  return {x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,cx:(minX+maxX)/2};
+}
+
+function copyPixel(src,dst,sx,sy,dx,dy){
+  if(sx<0||sy<0||dx<0||dy<0||sx>=32||sy>=32||dx>=32||dy>=32) return;
+  const si=(sy*32+sx)*4, di=(dy*32+dx)*4;
+  const a=src[si+3];
+  if(!a) return;
+  dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=a;
+}
+
+function generateWalkFramesFromImageData(base, settings){
+  const b = getAlphaBounds(base);
+  const top=b.y, bottom=b.y+b.h-1, cx=b.cx;
+  const headEnd = Math.round(top + b.h*0.56);
+  const shoulderY = Math.round(top + b.h*0.52);
+  const legStart = Math.round(top + b.h*0.77);
+  const torsoHalf = Math.max(2,Math.round(b.w*0.18));
+
+  const poses = [
+    {legL:-settings.step,legR: settings.step, armL: settings.arm, armR:-settings.arm,bob:0},
+    {legL:0,legR:0,armL:0,armR:0,bob:1},
+    {legL: settings.step,legR:-settings.step, armL:-settings.arm, armR: settings.arm,bob:0},
+    {legL:0,legR:0,armL:0,armR:0,bob:1}
+  ];
+
+  const out = [];
+  for(const p of poses){
+    const dst = new Uint8ClampedArray(32*32*4);
+    for(let y=0;y<32;y++){
+      for(let x=0;x<32;x++){
+        const i=(y*32+x)*4;
+        if(base.data[i+3]===0) continue;
+
+        let dx=x,dy=y;
+
+        // 頭・顔・髪：固定が基本
+        if(y <= headEnd && settings.headLock){
+          dx=x;dy=y;
+        }
+        // 脚：左右に分けて歩幅をつける
+        else if(y >= legStart){
+          if(x < cx) dx=x+p.legL;
+          else dx=x+p.legR;
+          dy=y + (p.bob ? 0 : 0);
+        }
+        // 腕：胴体中央を避け、左右外側だけを振る
+        else if(y >= shoulderY && Math.abs(x-cx) > torsoHalf){
+          if(x < cx) dx=x+p.armL;
+          else dx=x+p.armR;
+          dy=y + p.bob;
+        }
+        // 胴体中央：1pxだけ上下
+        else if(y > headEnd){
+          dy=y+p.bob;
+        }
+
+        copyPixel(base.data,dst,x,y,Math.round(dx),Math.round(dy));
+      }
+    }
+
+    // 頭固定時、胴体の上移動で空いた首周りを元画像から少し戻す
+    if(settings.headLock){
+      for(let y=headEnd-1;y<=Math.min(headEnd+2,31);y++){
+        for(let x=0;x<32;x++){
+          const i=(y*32+x)*4;
+          if(base.data[i+3] && dst[i+3]===0) copyPixel(base.data,dst,x,y,x,y);
+        }
+      }
+    }
+
+    out.push(new ImageData(dst,32,32));
+  }
+  return out;
+}
+
+async function imageDataToItem(imageData,name){
+  const c=document.createElement('canvas');
+  c.width=32;c.height=32;
+  c.getContext('2d').putImageData(imageData,0,0);
+  return {name,dataUrl:c.toDataURL('image/png'),width:32,height:32,generated:true};
+}
+
+async function generate(dir){
+  const s=state[dir];
+  if(!s.idle){ toast(`${labelOf(dir)}: 停止画像が必要です`); return; }
+  try{
+    const c=await normalizeTo32(s.idle);
+    const ctx=c.getContext('2d',{willReadFrequently:true});
+    const base=ctx.getImageData(0,0,32,32);
+    const frames=generateWalkFramesFromImageData(base,s.auto);
+    s.generated=[];
+    for(let i=0;i<frames.length;i++){
+      s.generated.push(await imageDataToItem(frames[i],`auto_${i+1}.png`));
+    }
+    renderDir(dir);
+    toast(`${labelOf(dir)}: 4コマ生成しました`);
+  }catch(e){ console.error(e); toast('自動生成に失敗しました'); }
+}
+
+function activeFrames(dir){
+  const s=state[dir];
+  const mode=playModeEl.value;
+  if(mode==='loaded'){
+    return s.extras.length ? s.extras : s.generated;
+  }
+  return s.generated.length ? s.generated : s.extras;
+}
+
+async function drawItem(item,canvas){
+  if(!item||!canvas) return;
+  const norm=await normalizeTo32(item);
+  const ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,32,32);
+  ctx.drawImage(norm,0,0);
+}
+async function drawToAllCanvases(dir,item){
+  await drawItem(item,$(`#preview-${dir}`));
+  await drawItem(item,$(`#overview-${dir}`));
+}
+async function clearDirCanvases(dir){
+  for(const id of [`#preview-${dir}`,`#overview-${dir}`]){
+    const c=$(id);
+    if(!c) continue;
+    const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,32,32);
+  }
+}
+async function drawStill(dir){
+  const item=state[dir].idle || activeFrames(dir)[0];
+  if(item) await drawToAllCanvases(dir,item);
+  else await clearDirCanvases(dir);
+}
+async function drawFrame(dir,index){
+  const frames=activeFrames(dir);
+  if(!frames.length){ await drawStill(dir); return; }
+  await drawToAllCanvases(dir,frames[index%frames.length]);
+}
+
+function play(dir){
+  const frames=activeFrames(dir);
+  if(!frames.length){ toast(`${labelOf(dir)}: 再生する歩行フレームがありません`); return; }
+  stop(dir,false);
+  const s=state[dir];
+  s.playing=true;s.index=0;
+  drawFrame(dir,0);
+  const tick=()=>{
+    if(!s.playing)return;
+    s.index=(s.index+1)%activeFrames(dir).length;
+    drawFrame(dir,s.index);
+    s.timer=setTimeout(tick,Math.max(40,Number(durationEl.value)||125));
+  };
+  s.timer=setTimeout(tick,Math.max(40,Number(durationEl.value)||125));
+}
+function stop(dir,showIdle=true){
+  const s=state[dir];
+  s.playing=false;
+  clearTimeout(s.timer);
+  s.timer=null;s.index=0;
+  if(showIdle) drawStill(dir);
+}
+
+function renderDir(dir){
+  const s=state[dir];
+  $(`#badge-${dir}`).textContent=`${s.idle?'停止あり':'停止なし'} / 追加${s.extras.length} / 自動${s.generated.length}`;
+
+  const idleBox=$(`#idle-${dir}`);
+  if(!s.idle){
+    idleBox.innerHTML='<div class="empty">停止画像を読み込んでください</div>';
+  }else{
+    idleBox.innerHTML=`
+      <canvas id="idleCanvas-${dir}" class="idleThumb" width="32" height="32"></canvas>
+      <div class="meta"><b>基準・停止画像</b><div class="name">${esc(s.idle.name)}</div></div>
+      <button class="small danger" data-act="removeIdle" data-dir="${dir}">削除</button>`;
+    drawItem(s.idle,$(`#idleCanvas-${dir}`));
+  }
+
+  renderStrip(dir,'generated',s.generated,true);
+  renderStrip(dir,'extras',s.extras,false);
+  if(!s.playing) drawStill(dir);
+  drawSpriteMini(dir);
+  updateSpriteCounts();
+}
+
+function renderStrip(dir,key,items,isGenerated){
+  const box=$(`#${key}-${dir}`);
+  if(!items.length){
+    box.innerHTML=`<div class="empty">${isGenerated?'まだ生成していません':'追加歩行画像なし'}</div>`;
+    return;
+  }
+  box.innerHTML=items.map((f,i)=>`
+    <div class="card${isGenerated?' generated':''}">
+      <div class="thumbWrap"><canvas id="${key}Thumb-${dir}-${i}" class="frameThumb" width="32" height="32"></canvas></div>
+      <div class="cardName">${i+1}. ${esc(f.name)}</div>
+      ${isGenerated ? '' : `
+      <div class="cardBtns">
+        <button data-act="left" data-dir="${dir}" data-index="${i}">←</button>
+        <button data-act="right" data-dir="${dir}" data-index="${i}">→</button>
+        <button data-act="removeExtra" data-dir="${dir}" data-index="${i}">×</button>
+      </div>`}
+    </div>`).join('');
+  items.forEach((f,i)=>drawItem(f,$(`#${key}Thumb-${dir}-${i}`)));
+}
+
+function moveExtra(dir,index,delta){
+  const a=state[dir].extras,ni=index+delta;
+  if(ni<0||ni>=a.length)return;
+  [a[index],a[ni]]=[a[ni],a[index]];
+  renderDir(dir);
+}
+
+async function addIdle(dir,file){
+  if(!file)return;
+  try{
+    state[dir].idle=await itemFromFile(file);
+    state[dir].generated=[];
+    renderDir(dir);
+    toast(`${labelOf(dir)}: 停止画像を設定`);
+  }catch(e){ console.error(e);toast('停止画像を読み込めませんでした'); }
+}
+
+async function addExtras(dir,files){
+  if(!files?.length)return;
+  const remain=MAX_EXTRA-state[dir].extras.length;
+  if(remain<=0){toast(`${labelOf(dir)}: 最大10枚です`);return;}
+  const selected=Array.from(files).sort(naturalSort).slice(0,remain);
+  try{
+    for(const f of selected) state[dir].extras.push(await itemFromFile(f));
+    renderDir(dir);
+    toast(`${labelOf(dir)}: ${selected.length}枚追加`);
+  }catch(e){console.error(e);toast('追加画像を読み込めませんでした');}
+}
+
+async function exportActiveSheet(){
+  const max=Math.max(0,...dirs.map(d=>activeFrames(d.id).length));
+  if(!max){toast('使用中の歩行フレームがありません');return;}
+  const c=document.createElement('canvas');
+  c.width=max*32;c.height=4*32;
+  const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;
+  for(let r=0;r<dirs.length;r++){
+    const frames=activeFrames(dirs[r].id);
+    for(let i=0;i<frames.length;i++){
+      const n=await normalizeTo32(frames[i]);
+      ctx.drawImage(n,i*32,r*32);
+    }
+  }
+  downloadCanvas(c,'walk_sheet_active_32.png');
+  toast('歩行シートを書き出しました');
+}
+async function exportIdle(){
+  if(!dirs.some(d=>state[d.id].idle)){toast('停止画像がありません');return;}
+  const c=document.createElement('canvas');c.width=128;c.height=32;
+  const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;
+  for(let i=0;i<dirs.length;i++){
+    const it=state[dirs[i].id].idle;
+    if(it){const n=await normalizeTo32(it);ctx.drawImage(n,i*32,0);}
+  }
+  downloadCanvas(c,'idle_4directions_32.png');
+  toast('停止画像を書き出しました');
+}
+function downloadCanvas(c,name){
+  c.toBlob(b=>downloadBlob(b,name),'image/png');
+}
+function downloadBlob(blob,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1200);
+}
+function saveProject(){
+  const payload={
+    version:3,targetSize:32,duration:Number(durationEl.value)||125,playMode:playModeEl.value,
+    order:dirs.map(d=>d.id),directions:{},
+    spritePicker:{
+      dataUrl:spritePicker.dataUrl,
+      fileName:spritePicker.fileName,
+      zoom:spritePicker.zoom,
+      selections:spritePicker.selections,
+      walkSelections:spritePicker.walkSelections,
+      pixelGridMode:spritePicker.pixelGridMode,
+      bulk:spritePicker.bulk,
+      mode:spritePicker.mode,
+      activeDir:spritePicker.activeDir
+    }
+  };
+  dirs.forEach(d=>{
+    const s=state[d.id];
+    payload.directions[d.id]={idle:s.idle,extras:s.extras,generated:s.generated,auto:s.auto};
+  });
+  downloadBlob(new Blob([JSON.stringify(payload)],{type:'application/json'}),'walk_animator_B_project.json');
+  toast('プロジェクトJSONを保存しました');
+}
+async function loadProject(file){
+  if(!file)return;
+  try{
+    const p=JSON.parse(await file.text());
+    if(!p?.directions)throw new Error('invalid');
+    dirs.forEach(d=>stop(d.id,false));
+    dirs.forEach(d=>{
+      const x=p.directions[d.id]||{};
+      state[d.id].idle=x.idle||null;
+      state[d.id].extras=Array.isArray(x.extras)?x.extras.slice(0,MAX_EXTRA):[];
+      state[d.id].generated=Array.isArray(x.generated)?x.generated.slice(0,AUTO_FRAMES):[];
+      state[d.id].auto={headLock:true,step:1,arm:1,...(x.auto||{})};
+      const sec=$(`#sec-${d.id}`);
+      sec.querySelector('[data-setting="headLock"]').checked=!!state[d.id].auto.headLock;
+      sec.querySelector('[data-setting="step"]').value=state[d.id].auto.step;
+      sec.querySelector('[data-setting="arm"]').value=state[d.id].auto.arm;
+      $(`#stepVal-${d.id}`).textContent=`${state[d.id].auto.step}px`;
+      $(`#armVal-${d.id}`).textContent=`${state[d.id].auto.arm}px`;
+    });
+    if(p.duration)durationEl.value=p.duration;
+    if(p.playMode)playModeEl.value=p.playMode;
+    syncSpeedUI(durationEl.value);
+
+    if(p.spritePicker){
+      spritePicker.dataUrl=p.spritePicker.dataUrl||null;
+      spritePicker.fileName=p.spritePicker.fileName||'';
+      spritePicker.zoom=Number(p.spritePicker.zoom)||2;
+      spritePicker.selections={front:null,right:null,left:null,back:null,...(p.spritePicker.selections||{})};
+      spritePicker.walkSelections={front:[],right:[],left:[],back:[],...(p.spritePicker.walkSelections||{})};
+      spritePicker.pixelGridMode=(p.spritePicker.pixelGridMode==='on'||p.spritePicker.pixelGridMode==='off') ? p.spritePicker.pixelGridMode : 'auto';
+      spritePicker.bulk={count:4,axis:'x',...(p.spritePicker.bulk||{})};
+      spritePicker.mode=p.spritePicker.mode==='walk'?'walk':'idle';
+      spritePicker.activeDir=['front','right','left','back'].includes(p.spritePicker.activeDir)?p.spritePicker.activeDir:'front';
+      $('#spriteZoom').value=String(spritePicker.zoom);
+      $('#pixelGridMode').value=spritePicker.pixelGridMode;
+      $('#bulkCount').value=spritePicker.bulk.count; $('#bulkAxis').value=spritePicker.bulk.axis;
+      if(spritePicker.dataUrl){
+        try{ spritePicker.image=await loadImage(spritePicker.dataUrl); }
+        catch(e){ spritePicker.image=null; }
+      }else spritePicker.image=null;
+      setSpriteActiveDir(spritePicker.activeDir); setSpriteMode(spritePicker.mode);
+    }
+
+    dirs.forEach(d=>renderDir(d.id));
+    updateSpriteCounts();
+    drawSpriteSheet();
+    toast('プロジェクトを復元しました');
+  }catch(e){console.error(e);toast('JSONを読み込めませんでした');}
+}
+function clearAll(){
+  if(!confirm('すべての読み込み画像と生成フレームを消去しますか？'))return;
+  dirs.forEach(d=>{
+    stop(d.id,false);
+    state[d.id].idle=null;
+    state[d.id].extras=[];
+    state[d.id].generated=[];
+    state[d.id].auto={headLock:true,step:1,arm:1};
+  });
+  spritePicker.image=null;
+  spritePicker.dataUrl=null;
+  spritePicker.fileName='';
+  spritePicker.selections={front:null,right:null,left:null,back:null};
+  spritePicker.walkSelections={front:[],right:[],left:[],back:[]};
+  spritePicker.draft=null;
+  spritePicker.mode='idle'; spritePicker.activeDir='front';
+  spritePicker.pixelGridMode='auto';
+  spritePicker.bulk={count:4,axis:'x'};
+  $('#spriteZoom').value='2'; $('#pixelGridMode').value='auto'; $('#bulkCount').value=4; $('#bulkAxis').value='x';
+  dirs.forEach(d=>renderDir(d.id));
+  updateSpriteCounts();
+  setSpriteActiveDir('front'); setSpriteMode('idle');
+  drawSpriteSheet();
+  toast('すべて消去しました');
+}
+
+buildUI();
+dirs.forEach(d=>renderDir(d.id));
+
+root.addEventListener('change',e=>{
+  const input=e.target.closest('input[type=file]');
+  if(input){
+    const dir=input.dataset.dir;
+    if(input.dataset.input==='idle') addIdle(dir,input.files?.[0]);
+    if(input.dataset.input==='extra') addExtras(dir,input.files);
+    input.value='';
+    return;
+  }
+  const setting=e.target.dataset.setting;
+  const dir=e.target.dataset.dir;
+  if(setting && dir){
+    if(setting==='headLock') state[dir].auto.headLock=!!e.target.checked;
+    if(setting==='step'){
+      state[dir].auto.step=Number(e.target.value);
+      $(`#stepVal-${dir}`).textContent=`${state[dir].auto.step}px`;
+    }
+    if(setting==='arm'){
+      state[dir].auto.arm=Number(e.target.value);
+      $(`#armVal-${dir}`).textContent=`${state[dir].auto.arm}px`;
+    }
+  }
+});
+
+root.addEventListener('input',e=>{
+  const setting=e.target.dataset.setting,dir=e.target.dataset.dir;
+  if(!setting||!dir)return;
+  if(setting==='step'){
+    state[dir].auto.step=Number(e.target.value);
+    $(`#stepVal-${dir}`).textContent=`${state[dir].auto.step}px`;
+  }
+  if(setting==='arm'){
+    state[dir].auto.arm=Number(e.target.value);
+    $(`#armVal-${dir}`).textContent=`${state[dir].auto.arm}px`;
+  }
+});
+
+root.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]');
+  if(!b)return;
+  const dir=b.dataset.dir,idx=Number(b.dataset.index);
+  switch(b.dataset.act){
+    case 'play': play(dir); break;
+    case 'stop': stop(dir,true); break;
+    case 'generate': generate(dir); break;
+    case 'removeIdle':
+      stop(dir,false);state[dir].idle=null;state[dir].generated=[];renderDir(dir);break;
+    case 'left': moveExtra(dir,idx,-1);break;
+    case 'right': moveExtra(dir,idx,1);break;
+    case 'removeExtra': state[dir].extras.splice(idx,1);renderDir(dir);break;
+  }
+});
+
+$('#playAll').onclick=()=>dirs.forEach(d=>play(d.id));
+$('#stopAll').onclick=()=>dirs.forEach(d=>stop(d.id,true));
+$('#exportActive').onclick=exportActiveSheet;
+$('#exportIdle').onclick=exportIdle;
+$('#saveProject').onclick=saveProject;
+$('#loadProject').onchange=e=>{loadProject(e.target.files?.[0]);e.target.value='';};
+$('#clearAll').onclick=clearAll;
+playModeEl.onchange=()=>dirs.forEach(d=>{stop(d.id,false);renderDir(d.id);});
+durationEl.oninput=()=>syncSpeedUI(durationEl.value);
+durationEl.onchange=()=>applySpeed(durationEl.value);
+speedRangeEl.oninput=()=>syncSpeedUI(speedRangeEl.value);
+speedRangeEl.onchange=()=>applySpeed(speedRangeEl.value);
+$('#speedNormal').onclick=()=>{applySpeed(125); toast('標準速度にしました');};
+$('#speedSlow').onclick=()=>{applySpeed(200); toast('ゆっくりにしました');};
+$('#speedVerySlow').onclick=()=>{applySpeed(300); toast('かなりゆっくりにしました');};
+
+// スプライトシートから4方向の基準画像を選ぶ
+$('#spriteSheetInput').onchange=e=>{
+  loadSpriteSheetFile(e.target.files?.[0]);
+  e.target.value='';
+};
+$('#spriteZoom').onchange=e=>{
+  spritePicker.zoom=Number(e.target.value)||2;
+  drawSpriteSheet();
+};
+document.querySelectorAll('[data-sprite-dir]').forEach(b=>{
+  b.onclick=()=>setSpriteActiveDir(b.dataset.spriteDir);
+});
+document.querySelectorAll('[data-sprite-mode]').forEach(b=>{
+  b.onclick=()=>setSpriteMode(b.dataset.spriteMode);
+});
+$('#applyCrop').onclick=applyCurrentCrop;
+$('#undoSpriteWalk').onclick=undoLastSpriteWalk;
+$('#bulkRegister').onclick=bulkRegisterFromDraft;
+$('#clearSpriteSelection').onclick=clearCurrentSpriteSelection;
+$('#alignCurrent').onclick=()=>alignDirectionExtras(spritePicker.activeDir);
+$('#alignAll').onclick=alignAllDirections;
+$('#flipRightToLeft').onclick=()=>flipDirection('right','left');
+$('#flipLeftToRight').onclick=()=>flipDirection('left','right');
+$('#pixelGridMode').onchange=()=>{ getPixelGridMode(); drawSpriteSheet(); };
+['bulkCount','bulkAxis'].forEach(id=>{
+  $('#'+id).onchange=()=>{ getBulkConfig(); };
+});
+
+document.querySelectorAll('[data-nudge]').forEach(b=>{
+  b.onclick=()=>{
+    if(!spritePicker.image) return;
+    let sel=readCropFields();
+    if(!sel) return;
+    const iw=spritePicker.image.naturalWidth, ih=spritePicker.image.naturalHeight;
+    switch(b.dataset.nudge){
+      case 'x-': sel.x=Math.max(0,sel.x-1); break;
+      case 'x+': sel.x=Math.min(iw-sel.w,sel.x+1); break;
+      case 'y-': sel.y=Math.max(0,sel.y-1); break;
+      case 'y+': sel.y=Math.min(ih-sel.h,sel.y+1); break;
+    }
+    spritePicker.draft={...sel};
+    setCropFields(sel);
+    drawSpriteSheet();
+  };
+});
+
+const spriteCanvas=$('#spriteSheetCanvas');
+spriteCanvas.addEventListener('pointerdown',e=>{
+  if(!spritePicker.image) return;
+  e.preventDefault();
+  spriteCanvas.setPointerCapture?.(e.pointerId);
+  const p=pointOnSpriteCanvas(e);
+  spritePicker.dragging=true;
+  spritePicker.dragStart=p;
+  spritePicker.dragCurrent=p;
+  drawSpriteSheet();
+});
+spriteCanvas.addEventListener('pointermove',e=>{
+  if(!spritePicker.dragging) return;
+  e.preventDefault();
+  spritePicker.dragCurrent=pointOnSpriteCanvas(e);
+  const sel=normalizedRect(spritePicker.dragStart,spritePicker.dragCurrent);
+  setCropFields(sel);
+  drawSpriteSheet();
+});
+async function finishSpriteDrag(e){
+  if(!spritePicker.dragging) return;
+  e.preventDefault();
+  spritePicker.dragCurrent=pointOnSpriteCanvas(e);
+  spritePicker.dragging=false;
+  const sel=normalizedRect(spritePicker.dragStart,spritePicker.dragCurrent);
+  spritePicker.dragStart=null;spritePicker.dragCurrent=null;
+  if(sel.w<2||sel.h<2){ drawSpriteSheet(); return; }
+  await registerSpriteSelection(sel,'drag');
+}
+spriteCanvas.addEventListener('pointerup',finishSpriteDrag);
+spriteCanvas.addEventListener('pointercancel',()=>{spritePicker.dragging=false;drawSpriteSheet();});
+
+['cropX','cropY','cropW','cropH'].forEach(id=>{
+  $('#'+id).onchange=()=>{
+    if(!spritePicker.image) return;
+    const sel=readCropFields();
+    if(!sel) return;
+    spritePicker.draft={...sel};
+    drawSpriteSheet();
+  };
+});
+
+$('#pixelGridMode').value=spritePicker.pixelGridMode;
+$('#bulkCount').value=spritePicker.bulk.count; $('#bulkAxis').value=spritePicker.bulk.axis;
+updatePixelGridStatus();
+updateSpriteCounts();
+setSpriteActiveDir('front');
+setSpriteMode('idle');
+syncSpeedUI(durationEl.value);
+
 })();
 </script>
 </body>
