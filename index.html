@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0d0f14">
-<title>32×32 Walk Animator B v7</title>
+<title>32×32 Walk Animator B v9</title>
 <style>
 :root{
   color-scheme:dark;
@@ -96,14 +96,23 @@ linear-gradient(45deg,transparent 75%,#1a1e27 75%) 8px -8px/16px 16px,
 linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 .overviewCanvas{width:144px;height:144px;image-rendering:pixelated;image-rendering:crisp-edges}
 .spritePickerPanel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
-.spritePickerTop{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.spritePickerTop{display:grid;grid-template-columns:1fr minmax(130px,180px);gap:8px;align-items:end}
+.spriteNavModes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.spriteNavModes button.active{background:#245e50;border-color:#3a8a75;color:#effff9}
+.scrollSliders{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px;padding:8px;background:#10131a;border:1px solid var(--line);border-radius:12px}
+.scrollLine{display:grid;grid-template-columns:54px 1fr 52px;gap:7px;align-items:center}
+.scrollLine .scrollName{font-size:11px;color:var(--sub)}
+.scrollLine .scrollPct{font-size:10px;color:var(--sub);text-align:right}
+.scrollLine input[type=range]{min-height:38px;width:100%}
+.zoomQuick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.zoomQuick button{min-height:38px;padding:6px;font-size:11px}
 .spriteDirButtons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:9px 0}
 .spriteDirButtons button.active{background:var(--accent);border-color:transparent}
 .spriteModeButtons{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
 .spriteModeButtons button.active{background:#245e50;border-color:#3a8a75;color:#effff9}
 .spriteCounts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px}
 .spriteCount{font-size:10px;color:var(--sub);text-align:center;background:#10131a;border:1px solid var(--line);border-radius:8px;padding:5px 3px}
-.spriteScroll{overflow:auto;max-height:56vh;border:1px solid var(--line);border-radius:14px;background:#0b0d12;padding:8px;touch-action:none}
+.spriteScroll{overflow:auto;max-height:56vh;border:1px solid var(--line);border-radius:14px;background:#0b0d12;padding:8px;touch-action:none;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .spriteStage{position:relative;display:inline-block;min-width:100%;min-height:180px;text-align:left}
 #spriteSheetCanvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;max-width:none;touch-action:none}
 .spriteHint{font-size:12px;color:var(--sub);line-height:1.5;margin:7px 0}
@@ -127,6 +136,26 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 .spriteCanvasHint{font-size:11px;color:var(--sub);margin-top:6px}
 .quickTools{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .smallNotice{font-size:11px;color:var(--sub);line-height:1.55;margin-top:7px}
+
+.hqPanel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:12px;margin-bottom:14px}
+.hqTop{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.hqTop button.active{background:var(--accent);border-color:transparent}
+.hqEditorWrap{display:flex;justify-content:center;align-items:center;background:#0b0d12;border:1px solid var(--line);border-radius:14px;padding:8px;overflow:hidden}
+#hqMaskCanvas{display:block;width:min(100%,320px);height:auto;aspect-ratio:1/1;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;background:#0b0d12}
+.hqParts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.hqParts button{min-height:42px;padding:7px 5px;font-size:11px}
+.hqParts button.active{outline:2px solid #fff;outline-offset:-3px}
+.hqTools{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.hqSettings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.hqStatus{font-size:11px;color:var(--sub);line-height:1.5;background:#10131a;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px}
+.hqLegend{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.hqLegend span{font-size:10px;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:#10131a}
+.hqPrimary{width:100%;margin-top:9px;background:#245e50;border-color:#3a8a75;color:#effff9}
+@media(max-width:480px){
+ .hqParts{grid-template-columns:1fr 1fr}
+ .hqTools{grid-template-columns:1fr 1fr}
+ .hqSettings{grid-template-columns:1fr}
+}
 @media(max-width:480px){
   .grid3{grid-template-columns:1fr}
   .pixelGridRow{grid-template-columns:1fr}
@@ -144,8 +173,8 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 <body>
 <div class="wrap">
 <header>
-  <h1>32×32 Walk Animator B v7</h1>
-  <p class="lead">停止画像1枚を基準にし、追加歩行画像は各向き最大10枚。追加画像がなくても、AIを使わず4コマ歩行を簡易生成できます。</p>
+  <h1>32×32 Walk Animator B v9</h1>
+  <p class="lead">停止画像1枚を基準にし、追加歩行画像は各向き最大10枚。追加画像がなくても、AIを使わず4コマ歩行を生成できます。高品質生成では6部位マスクと方向別テンプレートを使います。</p>
 </header>
 
 <section class="panel">
@@ -186,8 +215,8 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
 <section class="spritePickerPanel">
   <div style="font-weight:900;margin-bottom:4px">スプライトシートから停止・歩行フレームを指定</div>
   <div class="spriteHint">
-    ①スプライト画像を読み込む → ②方向を選ぶ → ③停止または歩行を選ぶ → ④画像上をドラッグ。
-    選択は常に元画像の1px単位。1pxグリッドはAUTO / ON / OFFで切り替えられます。
+    ①スプライト画像を読み込む → ②必要なら「全体表示」で縮小 → ③方向と停止/歩行を選ぶ → ④枠を指定。
+    大きな画像は「画像を移動」モードまたは横・縦移動バーで位置を変えられます。選択精度は常に元画像1px単位です。
   </div>
 
   <div class="spritePickerTop">
@@ -196,7 +225,13 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
     </label>
     <label class="label">表示倍率
       <select id="spriteZoom">
+        <option value="fit">画面に合わせる</option>
+        <option value="0.125">0.125×</option>
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="0.75">0.75×</option>
         <option value="1">1×</option>
+        <option value="1.5">1.5×</option>
         <option value="2" selected>2×</option>
         <option value="3">3×</option>
         <option value="4">4×</option>
@@ -204,6 +239,17 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
         <option value="8">8×</option>
       </select>
     </label>
+  </div>
+
+  <div class="zoomQuick">
+    <button id="zoomFit" type="button">全体表示</button>
+    <button id="zoomHalf" type="button">0.5×</button>
+    <button id="zoomOne" type="button">1×</button>
+  </div>
+
+  <div class="spriteNavModes">
+    <button type="button" class="active" data-nav-mode="select">枠を選択</button>
+    <button type="button" data-nav-mode="pan">画像を移動</button>
   </div>
 
   <div class="spriteDirButtons">
@@ -258,6 +304,19 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
     </div>
   </div>
 
+  <div class="scrollSliders">
+    <div class="scrollLine">
+      <div class="scrollName">横移動</div>
+      <input id="spriteScrollX" type="range" min="0" max="0" value="0" step="1">
+      <div id="spriteScrollXValue" class="scrollPct">0%</div>
+    </div>
+    <div class="scrollLine">
+      <div class="scrollName">縦移動</div>
+      <input id="spriteScrollY" type="range" min="0" max="0" value="0" step="1">
+      <div id="spriteScrollYValue" class="scrollPct">0%</div>
+    </div>
+  </div>
+
   <div class="cropFields">
     <label>X<input id="cropX" type="number" min="0" value="0"></label>
     <label>Y<input id="cropY" type="number" min="0" value="0"></label>
@@ -307,6 +366,61 @@ linear-gradient(45deg,#1a1e27 25%,#10131a 25%) 8px -8px/16px 16px}
   </div>
 </section>
 
+
+<section class="hqPanel">
+  <div style="font-weight:900;margin-bottom:4px">高品質生成：6部位マスク</div>
+  <div class="spriteHint">停止画像を「頭・胴体・左右の腕・左右の脚」に分けてから、方向別の歩行テンプレートで再合成します。最初は仮マスクを自動作成し、必要な所だけ指で修正できます。</div>
+
+  <div class="hqTop">
+    <button type="button" class="active" data-hq-dir="front">正面</button>
+    <button type="button" data-hq-dir="right">右向き</button>
+    <button type="button" data-hq-dir="left">左向き</button>
+    <button type="button" data-hq-dir="back">後ろ向き</button>
+  </div>
+
+  <div class="hqEditorWrap"><canvas id="hqMaskCanvas" width="320" height="320"></canvas></div>
+
+  <div class="hqLegend">
+    <span>水色=頭</span><span>黄=胴体</span><span>桃=左腕</span><span>紫=右腕</span><span>緑=左脚</span><span>橙=右脚</span>
+  </div>
+
+  <div class="hqParts">
+    <button type="button" class="active" data-hq-part="1">頭</button>
+    <button type="button" data-hq-part="2">胴体</button>
+    <button type="button" data-hq-part="3">左腕</button>
+    <button type="button" data-hq-part="4">右腕</button>
+    <button type="button" data-hq-part="5">左脚</button>
+    <button type="button" data-hq-part="6">右脚</button>
+  </div>
+
+  <div class="hqTools">
+    <button id="hqAutoMask" type="button" class="good">仮マスク作成</button>
+    <button id="hqErase" type="button">消しゴム OFF</button>
+    <label class="label">ブラシ
+      <select id="hqBrush"><option value="1">1px</option><option value="2">2px</option><option value="3">3px</option></select>
+    </label>
+    <button id="hqClearMask" type="button">マスク全消去</button>
+    <label class="checkLabel"><input id="hqShowMask" type="checkbox" checked> マスク表示</label>
+    <label class="checkLabel"><input id="hqSeamRepair" type="checkbox" checked> 関節穴補正</label>
+  </div>
+
+  <div class="hqSettings">
+    <label class="sliderLabel">歩幅 <span id="hqStepValue">1px</span>
+      <input id="hqStep" type="range" min="1" max="3" step="1" value="1">
+    </label>
+    <label class="sliderLabel">腕振り <span id="hqArmValue">1px</span>
+      <input id="hqArm" type="range" min="0" max="3" step="1" value="1">
+    </label>
+    <label class="sliderLabel">上下動 <span id="hqBobValue">1px</span>
+      <input id="hqBob" type="range" min="0" max="2" step="1" value="1">
+    </label>
+    <label class="checkLabel"><input id="hqHeadLock" type="checkbox" checked> 頭を固定</label>
+  </div>
+
+  <div id="hqStatus" class="hqStatus">停止画像を読み込むと編集できます。</div>
+  <button id="hqGenerate" type="button" class="hqPrimary">高品質4コマを生成</button>
+</section>
+
 <div id="directions"></div>
 
 <section class="panel">
@@ -354,7 +468,8 @@ const state = Object.fromEntries(dirs.map(d => [d.id, {
   playing:false,
   timer:null,
   index:0,
-  auto:{headLock:true, step:1, arm:1}
+  auto:{headLock:true, step:1, arm:1},
+  hq:{mask:null, step:1, arm:1, bob:1, headLock:true, seamRepair:true}
 }]));
 
 const $ = s => document.querySelector(s);
@@ -378,9 +493,23 @@ const spritePicker = {
   dragStart:null,
   dragCurrent:null,
   zoom:2,
+  zoomChoice:'2',
+  interactionMode:'select',
+  pan:null,
   pixelGridMode:'auto',
   bulk:{count:4,axis:'x'}
 };
+
+
+const HQ_PARTS = {
+  1:{name:'頭',color:[79,199,255,120]},
+  2:{name:'胴体',color:[255,215,82,120]},
+  3:{name:'左腕',color:[255,113,160,125]},
+  4:{name:'右腕',color:[166,112,255,125]},
+  5:{name:'左脚',color:[91,220,139,125]},
+  6:{name:'右脚',color:[255,157,72,125]}
+};
+const hqEditor={activeDir:'front',part:1,brush:1,erase:false,showMask:true,painting:false,baseImageData:null};
 
 function toast(msg){
   const el = $('#status');
@@ -512,6 +641,7 @@ async function flipDirection(sourceDir,targetDir){
   state[targetDir].generated = [];
   for(const item of src.generated) state[targetDir].generated.push(await flipItem(item));
   state[targetDir].auto = {...src.auto};
+  state[targetDir].hq = {...src.hq, mask: src.hq.mask ? (()=>{const m=new Array(1024).fill(0);for(let y=0;y<32;y++)for(let x=0;x<32;x++)m[y*32+(31-x)]=src.hq.mask[y*32+x];return m;})() : null};
   const sec=$(`#sec-${targetDir}`);
   if(sec){
     sec.querySelector('[data-setting="headLock"]').checked=!!state[targetDir].auto.headLock;
@@ -535,6 +665,68 @@ function applySpeed(v){
   dirs.forEach(d=>{ if(state[d.id].playing) play(d.id); });
 }
 
+
+
+function setInteractionMode(mode){
+  spritePicker.interactionMode = mode==='pan' ? 'pan' : 'select';
+  document.querySelectorAll('[data-nav-mode]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.navMode===spritePicker.interactionMode);
+  });
+}
+function calcFitZoom(){
+  if(!spritePicker.image) return 1;
+  const sc=$('#spriteScroll');
+  const available=Math.max(120,(sc?.clientWidth||window.innerWidth-40)-18);
+  const z=available / Math.max(1,spritePicker.image.naturalWidth);
+  return clamp(Math.floor(z*1000)/1000,0.125,8);
+}
+function applySpriteZoom(choice, preserveCenter=true){
+  const sc=$('#spriteScroll');
+  let centerX=0.5, centerY=0.5;
+  if(sc && preserveCenter){
+    const maxX=Math.max(1,sc.scrollWidth-sc.clientWidth);
+    const maxY=Math.max(1,sc.scrollHeight-sc.clientHeight);
+    centerX=(sc.scrollLeft+sc.clientWidth/2)/Math.max(sc.scrollWidth,1);
+    centerY=(sc.scrollTop+sc.clientHeight/2)/Math.max(sc.scrollHeight,1);
+  }
+
+  spritePicker.zoomChoice=String(choice);
+  spritePicker.zoom = choice==='fit' ? calcFitZoom() : clamp(Number(choice)||1,0.125,8);
+  const select=$('#spriteZoom');
+  if(select && [...select.options].some(o=>o.value===String(choice))) select.value=String(choice);
+
+  drawSpriteSheet();
+
+  requestAnimationFrame(()=>{
+    updateSpriteScrollControls();
+    if(sc && preserveCenter){
+      const left=centerX*sc.scrollWidth-sc.clientWidth/2;
+      const top=centerY*sc.scrollHeight-sc.clientHeight/2;
+      sc.scrollLeft=clamp(left,0,Math.max(0,sc.scrollWidth-sc.clientWidth));
+      sc.scrollTop=clamp(top,0,Math.max(0,sc.scrollHeight-sc.clientHeight));
+      updateSpriteScrollControls();
+    }
+  });
+}
+function updateSpriteScrollControls(){
+  const sc=$('#spriteScroll');
+  const rx=$('#spriteScrollX'), ry=$('#spriteScrollY');
+  if(!sc||!rx||!ry) return;
+  const maxX=Math.max(0,Math.round(sc.scrollWidth-sc.clientWidth));
+  const maxY=Math.max(0,Math.round(sc.scrollHeight-sc.clientHeight));
+  rx.max=String(maxX); ry.max=String(maxY);
+  rx.value=String(clamp(Math.round(sc.scrollLeft),0,maxX));
+  ry.value=String(clamp(Math.round(sc.scrollTop),0,maxY));
+  rx.disabled=maxX===0; ry.disabled=maxY===0;
+  const xp=maxX?Math.round((Number(rx.value)/maxX)*100):0;
+  const yp=maxY?Math.round((Number(ry.value)/maxY)*100):0;
+  $('#spriteScrollXValue').textContent=`${xp}%`;
+  $('#spriteScrollYValue').textContent=`${yp}%`;
+}
+function updateFitZoomOnResize(){
+  if(spritePicker.zoomChoice==='fit' && spritePicker.image) applySpriteZoom('fit',false);
+  else updateSpriteScrollControls();
+}
 
 function spriteDirLabel(dir){
   return ({front:'正面',right:'右向き',left:'左向き',back:'後ろ向き'})[dir] || dir;
@@ -629,7 +821,7 @@ function drawGridOverlay(ctx){
 }
 function drawSpriteSheet(){
   const c=$('#spriteSheetCanvas'), ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false;
-  if(!spritePicker.image){ c.width=1; c.height=1; c.style.width='1px'; c.style.height='1px'; ctx.clearRect(0,0,1,1); updatePixelGridStatus(); return; }
+  if(!spritePicker.image){ c.width=1; c.height=1; c.style.width='1px'; c.style.height='1px'; ctx.clearRect(0,0,1,1); updatePixelGridStatus(); requestAnimationFrame(updateSpriteScrollControls); return; }
   const img=spritePicker.image;
   if(c.width!==img.naturalWidth||c.height!==img.naturalHeight){ c.width=img.naturalWidth; c.height=img.naturalHeight; }
   c.style.width=`${img.naturalWidth*spritePicker.zoom}px`; c.style.height=`${img.naturalHeight*spritePicker.zoom}px`;
@@ -644,6 +836,7 @@ function drawSpriteSheet(){
   }else if(spritePicker.draft){
     drawSelectionBox(ctx,spritePicker.draft,spritePicker.mode==='idle'?`${spriteShort(spritePicker.activeDir)}S`:`${spriteShort(spritePicker.activeDir)}+`,true,spritePicker.mode);
   }
+  requestAnimationFrame(updateSpriteScrollControls);
 }
 function cropSelectionToItem(dir,sel,prefix){
   const crop=document.createElement('canvas'); crop.width=Math.max(1,Math.round(sel.w)); crop.height=Math.max(1,Math.round(sel.h));
@@ -653,7 +846,7 @@ function cropSelectionToItem(dir,sel,prefix){
 }
 async function cropSelectionToIdle(dir,sel){
   if(!spritePicker.image||!sel) return;
-  state[dir].idle=cropSelectionToItem(dir,sel,'idle'); state[dir].generated=[]; spritePicker.selections[dir]={...sel}; renderDir(dir); drawSpriteMini(dir); updateSpriteCounts();
+  state[dir].idle=cropSelectionToItem(dir,sel,'idle'); state[dir].generated=[]; state[dir].hq.mask=null; spritePicker.selections[dir]={...sel}; renderDir(dir); drawSpriteMini(dir); updateSpriteCounts(); if(hqEditor.activeDir===dir) renderHQEditor();
 }
 async function cropSelectionToExtra(dir,sel){
   if(!spritePicker.image||!sel) return false;
@@ -709,9 +902,179 @@ async function loadSpriteSheetFile(file){
   if(!file) return;
   try{
     const dataUrl=await fileToData(file); const img=await loadImage(dataUrl);
-    spritePicker.image=img; spritePicker.dataUrl=dataUrl; spritePicker.fileName=file.name; spritePicker.selections={front:null,right:null,left:null,back:null}; spritePicker.walkSelections={front:[],right:[],left:[],back:[]}; spritePicker.draft=null; spritePicker.dragging=false; updateSpriteCounts(); drawSpriteSheet(); toast('スプライト画像を読み込みました');
+    spritePicker.image=img; spritePicker.dataUrl=dataUrl; spritePicker.fileName=file.name; spritePicker.selections={front:null,right:null,left:null,back:null}; spritePicker.walkSelections={front:[],right:[],left:[],back:[]}; spritePicker.draft=null; spritePicker.dragging=false; spritePicker.pan=null;
+    updateSpriteCounts();
+    // 大きなスプライトでも最初から全体像を見られるようにする
+    applySpriteZoom('fit',false);
+    toast('スプライト画像を読み込みました');
   }catch(e){ console.error(e); toast('スプライト画像を読み込めませんでした'); }
 }
+
+
+async function getNormalizedImageData(item){
+  const c=await normalizeTo32(item);
+  return c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,32,32);
+}
+function createAutoHQMask(base){
+  const mask=new Array(32*32).fill(0);
+  const b=getAlphaBounds(base);
+  const top=b.y, cx=b.cx;
+  const headEnd=Math.round(top+b.h*0.54);
+  const shoulderY=Math.round(top+b.h*0.50);
+  const legStart=Math.round(top+b.h*0.76);
+  const torsoHalf=Math.max(2,Math.round(b.w*0.19));
+  for(let y=0;y<32;y++) for(let x=0;x<32;x++){
+    const i=y*32+x;
+    if(base.data[i*4+3]===0) continue;
+    let part=2;
+    if(y<=headEnd) part=1;
+    else if(y>=legStart) part=x<cx?5:6;
+    else if(y>=shoulderY && Math.abs(x-cx)>torsoHalf) part=x<cx?3:4;
+    mask[i]=part;
+  }
+  return mask;
+}
+async function ensureHQBase(dir){
+  const s=state[dir];
+  if(!s.idle){ hqEditor.baseImageData=null; return null; }
+  hqEditor.baseImageData=await getNormalizedImageData(s.idle);
+  return hqEditor.baseImageData;
+}
+function hqMaskCoverage(dir){
+  const s=state[dir];
+  if(!s.hq.mask || !hqEditor.baseImageData) return {classified:0,opaque:0};
+  let opaque=0, classified=0;
+  for(let i=0;i<1024;i++) if(hqEditor.baseImageData.data[i*4+3]){ opaque++; if(s.hq.mask[i]) classified++; }
+  return {classified,opaque};
+}
+async function renderHQEditor(){
+  const dir=hqEditor.activeDir, s=state[dir];
+  const c=$('#hqMaskCanvas'); if(!c) return;
+  const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,320,320);
+  const base=await ensureHQBase(dir);
+  if(!base){
+    ctx.fillStyle='#151922';ctx.fillRect(0,0,320,320);ctx.fillStyle='#9aa4b8';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('停止画像を読み込んでください',160,160);
+    $('#hqStatus').textContent=`${labelOf(dir)}：停止画像がありません。`;
+    return;
+  }
+  const tiny=document.createElement('canvas');tiny.width=32;tiny.height=32;tiny.getContext('2d').putImageData(base,0,0);
+  ctx.drawImage(tiny,0,0,320,320);
+  if(hqEditor.showMask && s.hq.mask){
+    for(let y=0;y<32;y++) for(let x=0;x<32;x++){
+      const p=s.hq.mask[y*32+x]; if(!p) continue;
+      const col=HQ_PARTS[p]?.color; if(!col) continue;
+      ctx.fillStyle=`rgba(${col[0]},${col[1]},${col[2]},${col[3]/255})`;ctx.fillRect(x*10,y*10,10,10);
+    }
+  }
+  ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;
+  for(let i=0;i<=32;i++){ctx.beginPath();ctx.moveTo(i*10+.5,0);ctx.lineTo(i*10+.5,320);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*10+.5);ctx.lineTo(320,i*10+.5);ctx.stroke();}
+  const cv=hqMaskCoverage(dir); const pct=cv.opaque?Math.round(cv.classified/cv.opaque*100):0;
+  const template=(dir==='front'?'正面':dir==='back'?'後ろ':'横向き');
+  $('#hqStatus').textContent=`${labelOf(dir)} / ${template}テンプレート / マスク分類 ${pct}% (${cv.classified}/${cv.opaque}px)`;
+}
+function syncHQControls(){
+  const s=state[hqEditor.activeDir];
+  $('#hqStep').value=s.hq.step; $('#hqArm').value=s.hq.arm; $('#hqBob').value=s.hq.bob;
+  $('#hqStepValue').textContent=`${s.hq.step}px`; $('#hqArmValue').textContent=`${s.hq.arm}px`; $('#hqBobValue').textContent=`${s.hq.bob}px`;
+  $('#hqHeadLock').checked=!!s.hq.headLock; $('#hqSeamRepair').checked=!!s.hq.seamRepair;
+  $('#hqBrush').value=String(hqEditor.brush); $('#hqShowMask').checked=!!hqEditor.showMask;
+  $('#hqErase').textContent=`消しゴム ${hqEditor.erase?'ON':'OFF'}`;
+}
+async function setHQDir(dir){
+  hqEditor.activeDir=dir;
+  document.querySelectorAll('[data-hq-dir]').forEach(b=>b.classList.toggle('active',b.dataset.hqDir===dir));
+  syncHQControls(); await renderHQEditor();
+}
+async function autoHQMask(){
+  const dir=hqEditor.activeDir, s=state[dir];
+  const base=await ensureHQBase(dir); if(!base){toast(`${labelOf(dir)}: 停止画像が必要です`);return;}
+  s.hq.mask=createAutoHQMask(base); await renderHQEditor(); toast(`${labelOf(dir)}: 仮マスクを作成しました`);
+}
+function hqPointFromEvent(e){
+  const c=$('#hqMaskCanvas'),r=c.getBoundingClientRect();
+  return {x:clamp(Math.floor((e.clientX-r.left)/r.width*32),0,31),y:clamp(Math.floor((e.clientY-r.top)/r.height*32),0,31)};
+}
+function paintHQAt(x,y){
+  const s=state[hqEditor.activeDir]; if(!s.hq.mask || !hqEditor.baseImageData) return;
+  const rad=hqEditor.brush-1;
+  for(let yy=y-rad;yy<=y+rad;yy++) for(let xx=x-rad;xx<=x+rad;xx++){
+    if(xx<0||yy<0||xx>=32||yy>=32) continue;
+    const i=yy*32+xx;
+    if(hqEditor.erase){s.hq.mask[i]=0;continue;}
+    if(hqEditor.baseImageData.data[i*4+3]) s.hq.mask[i]=hqEditor.part;
+  }
+}
+function getPartBounds(mask,part){
+  let minX=32,minY=32,maxX=-1,maxY=-1;
+  for(let y=0;y<32;y++)for(let x=0;x<32;x++)if(mask[y*32+x]===part){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+  if(maxX<0)return null; return {minX,minY,maxX,maxY,w:maxX-minX+1,h:maxY-minY+1};
+}
+function writePixelOver(dst,di,src,si){
+  if(src[si+3]===0)return;dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
+}
+function drawHQPart(base,mask,dst,part,move,bounds){
+  if(!bounds)return;
+  for(let y=bounds.minY;y<=bounds.maxY;y++)for(let x=bounds.minX;x<=bounds.maxX;x++){
+    const mi=y*32+x;if(mask[mi]!==part)continue;const si=mi*4;if(base.data[si+3]===0)continue;
+    const t=bounds.h<=1?1:(y-bounds.minY)/(bounds.h-1);
+    const dx=Math.round(x + move.x*t + (move.baseX||0));
+    const dy=Math.round(y + move.y*t + (move.baseY||0));
+    if(dx<0||dy<0||dx>=32||dy>=32)continue;writePixelOver(dst,(dy*32+dx)*4,base.data,si);
+  }
+}
+function drawHQJointBridge(base,mask,dst,part,bounds,bob){
+  if(!bounds)return;
+  const end=Math.min(bounds.maxY,bounds.minY+1);
+  for(let y=bounds.minY;y<=end;y++)for(let x=bounds.minX;x<=bounds.maxX;x++){
+    const mi=y*32+x;if(mask[mi]!==part)continue;const si=mi*4;const dy=y+bob;if(dy<0||dy>=32)continue;writePixelOver(dst,(dy*32+x)*4,base.data,si);
+  }
+}
+function hqPoseFor(dir,phase,s){
+  const sign=phase===0?1:phase===2?-1:0;
+  const bob=(phase===1||phase===3)?s.bob:0;
+  if(dir==='right'||dir==='left'){
+    const facing=dir==='right'?1:-1;
+    return {bob,phaseSign:sign,
+      3:{x:-facing*sign*s.arm,y:0},4:{x:facing*sign*s.arm,y:0},
+      5:{x:facing*sign*s.step,y:sign?1:0},6:{x:-facing*sign*s.step,y:sign?-1:0}};
+  }
+  const back=dir==='back'?-1:1;
+  return {bob,phaseSign:sign,
+    3:{x:back*sign*s.arm,y:sign?1:0},4:{x:-back*sign*s.arm,y:sign?-1:0},
+    5:{x:-sign*s.step,y:sign?1:0},6:{x:sign*s.step,y:sign?-1:0}};
+}
+function generateHQFrames(base,mask,dir,s){
+  const bounds={};for(let p=1;p<=6;p++)bounds[p]=getPartBounds(mask,p);
+  const frames=[];
+  for(let phase=0;phase<4;phase++){
+    const pose=hqPoseFor(dir,phase,s),dst=new Uint8ClampedArray(32*32*4),bob=pose.bob;
+    const forwardLeft=pose.phaseSign>=0;
+    const rearArm=forwardLeft?3:4, frontArm=forwardLeft?4:3;
+    const rearLeg=forwardLeft?6:5, frontLeg=forwardLeft?5:6;
+    if(s.seamRepair){for(const p of [3,4,5,6])drawHQJointBridge(base,mask,dst,p,bounds[p],bob);}
+    drawHQPart(base,mask,dst,rearArm,{...pose[rearArm],baseY:bob},bounds[rearArm]);
+    drawHQPart(base,mask,dst,rearLeg,{...pose[rearLeg],baseY:bob},bounds[rearLeg]);
+    drawHQPart(base,mask,dst,2,{x:0,y:0,baseY:bob},bounds[2]);
+    drawHQPart(base,mask,dst,frontLeg,{...pose[frontLeg],baseY:bob},bounds[frontLeg]);
+    drawHQPart(base,mask,dst,frontArm,{...pose[frontArm],baseY:bob},bounds[frontArm]);
+    drawHQPart(base,mask,dst,1,{x:0,y:0,baseY:s.headLock?0:bob},bounds[1]);
+    // 未分類ピクセルは元位置を維持して特徴消失を防ぐ
+    for(let i=0;i<1024;i++)if(mask[i]===0 && base.data[i*4+3])writePixelOver(dst,i*4,base.data,i*4);
+    frames.push(new ImageData(dst,32,32));
+  }
+  return frames;
+}
+async function generateHQ(dir=hqEditor.activeDir){
+  const s=state[dir]; if(!s.idle){toast(`${labelOf(dir)}: 停止画像が必要です`);return;}
+  const base=await getNormalizedImageData(s.idle);
+  if(!s.hq.mask) s.hq.mask=createAutoHQMask(base);
+  let classified=0,opaque=0;for(let i=0;i<1024;i++)if(base.data[i*4+3]){opaque++;if(s.hq.mask[i])classified++;}
+  if(opaque && classified/opaque<0.75){toast('マスク未分類が多すぎます。仮マスク作成を押してください');return;}
+  const frames=generateHQFrames(base,s.hq.mask,dir,s.hq);s.generated=[];
+  for(let i=0;i<frames.length;i++)s.generated.push(await imageDataToItem(frames[i],`hq_${dir}_${i+1}.png`));
+  renderDir(dir);await renderHQEditor();toast(`${labelOf(dir)}: 高品質4コマを生成しました`);
+}
+function invalidateHQMask(dir){state[dir].hq.mask=null;if(hqEditor.activeDir===dir)renderHQEditor();}
 
 function buildUI(){
   root.innerHTML = dirs.map(d => `
@@ -1015,6 +1378,7 @@ function renderDir(dir){
   if(!s.playing) drawStill(dir);
   drawSpriteMini(dir);
   updateSpriteCounts();
+  if(hqEditor.activeDir===dir) renderHQEditor();
 }
 
 function renderStrip(dir,key,items,isGenerated){
@@ -1049,6 +1413,7 @@ async function addIdle(dir,file){
   try{
     state[dir].idle=await itemFromFile(file);
     state[dir].generated=[];
+    state[dir].hq.mask=null;
     renderDir(dir);
     toast(`${labelOf(dir)}: 停止画像を設定`);
   }catch(e){ console.error(e);toast('停止画像を読み込めませんでした'); }
@@ -1110,6 +1475,8 @@ function saveProject(){
       dataUrl:spritePicker.dataUrl,
       fileName:spritePicker.fileName,
       zoom:spritePicker.zoom,
+      zoomChoice:spritePicker.zoomChoice,
+      interactionMode:spritePicker.interactionMode,
       selections:spritePicker.selections,
       walkSelections:spritePicker.walkSelections,
       pixelGridMode:spritePicker.pixelGridMode,
@@ -1120,7 +1487,7 @@ function saveProject(){
   };
   dirs.forEach(d=>{
     const s=state[d.id];
-    payload.directions[d.id]={idle:s.idle,extras:s.extras,generated:s.generated,auto:s.auto};
+    payload.directions[d.id]={idle:s.idle,extras:s.extras,generated:s.generated,auto:s.auto,hq:s.hq};
   });
   downloadBlob(new Blob([JSON.stringify(payload)],{type:'application/json'}),'walk_animator_B_project.json');
   toast('プロジェクトJSONを保存しました');
@@ -1137,6 +1504,8 @@ async function loadProject(file){
       state[d.id].extras=Array.isArray(x.extras)?x.extras.slice(0,MAX_EXTRA):[];
       state[d.id].generated=Array.isArray(x.generated)?x.generated.slice(0,AUTO_FRAMES):[];
       state[d.id].auto={headLock:true,step:1,arm:1,...(x.auto||{})};
+      state[d.id].hq={mask:null,step:1,arm:1,bob:1,headLock:true,seamRepair:true,...(x.hq||{})};
+      if(state[d.id].hq.mask && !Array.isArray(state[d.id].hq.mask)) state[d.id].hq.mask=Array.from(state[d.id].hq.mask);
       const sec=$(`#sec-${d.id}`);
       sec.querySelector('[data-setting="headLock"]').checked=!!state[d.id].auto.headLock;
       sec.querySelector('[data-setting="step"]').value=state[d.id].auto.step;
@@ -1151,26 +1520,30 @@ async function loadProject(file){
     if(p.spritePicker){
       spritePicker.dataUrl=p.spritePicker.dataUrl||null;
       spritePicker.fileName=p.spritePicker.fileName||'';
-      spritePicker.zoom=Number(p.spritePicker.zoom)||2;
+      spritePicker.zoom=clamp(Number(p.spritePicker.zoom)||2,0.125,8);
+      spritePicker.zoomChoice=p.spritePicker.zoomChoice ? String(p.spritePicker.zoomChoice) : String(spritePicker.zoom);
+      spritePicker.interactionMode=p.spritePicker.interactionMode==='pan'?'pan':'select';
       spritePicker.selections={front:null,right:null,left:null,back:null,...(p.spritePicker.selections||{})};
       spritePicker.walkSelections={front:[],right:[],left:[],back:[],...(p.spritePicker.walkSelections||{})};
       spritePicker.pixelGridMode=(p.spritePicker.pixelGridMode==='on'||p.spritePicker.pixelGridMode==='off') ? p.spritePicker.pixelGridMode : 'auto';
       spritePicker.bulk={count:4,axis:'x',...(p.spritePicker.bulk||{})};
       spritePicker.mode=p.spritePicker.mode==='walk'?'walk':'idle';
       spritePicker.activeDir=['front','right','left','back'].includes(p.spritePicker.activeDir)?p.spritePicker.activeDir:'front';
-      $('#spriteZoom').value=String(spritePicker.zoom);
+      $('#spriteZoom').value=[...$('#spriteZoom').options].some(o=>o.value===spritePicker.zoomChoice) ? spritePicker.zoomChoice : String(spritePicker.zoom);
       $('#pixelGridMode').value=spritePicker.pixelGridMode;
       $('#bulkCount').value=spritePicker.bulk.count; $('#bulkAxis').value=spritePicker.bulk.axis;
       if(spritePicker.dataUrl){
         try{ spritePicker.image=await loadImage(spritePicker.dataUrl); }
         catch(e){ spritePicker.image=null; }
       }else spritePicker.image=null;
-      setSpriteActiveDir(spritePicker.activeDir); setSpriteMode(spritePicker.mode);
+      setSpriteActiveDir(spritePicker.activeDir); setSpriteMode(spritePicker.mode); setInteractionMode(spritePicker.interactionMode);
+      if(spritePicker.image) applySpriteZoom(spritePicker.zoomChoice,false);
     }
 
     dirs.forEach(d=>renderDir(d.id));
     updateSpriteCounts();
     drawSpriteSheet();
+    await setHQDir(hqEditor.activeDir);
     toast('プロジェクトを復元しました');
   }catch(e){console.error(e);toast('JSONを読み込めませんでした');}
 }
@@ -1182,6 +1555,7 @@ function clearAll(){
     state[d.id].extras=[];
     state[d.id].generated=[];
     state[d.id].auto={headLock:true,step:1,arm:1};
+    state[d.id].hq={mask:null,step:1,arm:1,bob:1,headLock:true,seamRepair:true};
   });
   spritePicker.image=null;
   spritePicker.dataUrl=null;
@@ -1189,14 +1563,16 @@ function clearAll(){
   spritePicker.selections={front:null,right:null,left:null,back:null};
   spritePicker.walkSelections={front:[],right:[],left:[],back:[]};
   spritePicker.draft=null;
-  spritePicker.mode='idle'; spritePicker.activeDir='front';
+  spritePicker.mode='idle'; spritePicker.activeDir='front'; spritePicker.interactionMode='select'; spritePicker.pan=null;
+  spritePicker.zoom=2; spritePicker.zoomChoice='2';
   spritePicker.pixelGridMode='auto';
   spritePicker.bulk={count:4,axis:'x'};
   $('#spriteZoom').value='2'; $('#pixelGridMode').value='auto'; $('#bulkCount').value=4; $('#bulkAxis').value='x';
   dirs.forEach(d=>renderDir(d.id));
   updateSpriteCounts();
-  setSpriteActiveDir('front'); setSpriteMode('idle');
+  setSpriteActiveDir('front'); setSpriteMode('idle'); setInteractionMode('select');
   drawSpriteSheet();
+  setHQDir('front');
   toast('すべて消去しました');
 }
 
@@ -1249,7 +1625,7 @@ root.addEventListener('click',e=>{
     case 'stop': stop(dir,true); break;
     case 'generate': generate(dir); break;
     case 'removeIdle':
-      stop(dir,false);state[dir].idle=null;state[dir].generated=[];renderDir(dir);break;
+      stop(dir,false);state[dir].idle=null;state[dir].generated=[];state[dir].hq.mask=null;renderDir(dir);if(hqEditor.activeDir===dir)renderHQEditor();break;
     case 'left': moveExtra(dir,idx,-1);break;
     case 'right': moveExtra(dir,idx,1);break;
     case 'removeExtra': state[dir].extras.splice(idx,1);renderDir(dir);break;
@@ -1272,15 +1648,41 @@ $('#speedNormal').onclick=()=>{applySpeed(125); toast('標準速度にしまし�
 $('#speedSlow').onclick=()=>{applySpeed(200); toast('ゆっくりにしました');};
 $('#speedVerySlow').onclick=()=>{applySpeed(300); toast('かなりゆっくりにしました');};
 
+// 高品質生成：6部位マスク
+for(const b of document.querySelectorAll('[data-hq-dir]')) b.onclick=()=>setHQDir(b.dataset.hqDir);
+for(const b of document.querySelectorAll('[data-hq-part]')) b.onclick=()=>{
+  hqEditor.part=Number(b.dataset.hqPart);hqEditor.erase=false;
+  document.querySelectorAll('[data-hq-part]').forEach(x=>x.classList.toggle('active',x===b));syncHQControls();
+};
+$('#hqAutoMask').onclick=autoHQMask;
+$('#hqClearMask').onclick=async()=>{const s=state[hqEditor.activeDir];s.hq.mask=new Array(1024).fill(0);await renderHQEditor();toast('マスクを全消去しました');};
+$('#hqErase').onclick=()=>{hqEditor.erase=!hqEditor.erase;syncHQControls();};
+$('#hqBrush').onchange=e=>{hqEditor.brush=Number(e.target.value)||1;};
+$('#hqShowMask').onchange=e=>{hqEditor.showMask=!!e.target.checked;renderHQEditor();};
+$('#hqSeamRepair').onchange=e=>{state[hqEditor.activeDir].hq.seamRepair=!!e.target.checked;};
+$('#hqHeadLock').onchange=e=>{state[hqEditor.activeDir].hq.headLock=!!e.target.checked;};
+$('#hqStep').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.step=Number(e.target.value);$('#hqStepValue').textContent=`${s.hq.step}px`;};
+$('#hqArm').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.arm=Number(e.target.value);$('#hqArmValue').textContent=`${s.hq.arm}px`;};
+$('#hqBob').oninput=e=>{const s=state[hqEditor.activeDir];s.hq.bob=Number(e.target.value);$('#hqBobValue').textContent=`${s.hq.bob}px`;};
+$('#hqGenerate').onclick=()=>generateHQ(hqEditor.activeDir);
+const hqCanvas=$('#hqMaskCanvas');
+hqCanvas.addEventListener('pointerdown',async e=>{e.preventDefault();const base=await ensureHQBase(hqEditor.activeDir);if(!base)return;const s=state[hqEditor.activeDir];if(!s.hq.mask)s.hq.mask=createAutoHQMask(base);hqEditor.painting=true;hqCanvas.setPointerCapture?.(e.pointerId);const p=hqPointFromEvent(e);paintHQAt(p.x,p.y);renderHQEditor();});
+hqCanvas.addEventListener('pointermove',e=>{if(!hqEditor.painting)return;e.preventDefault();const p=hqPointFromEvent(e);paintHQAt(p.x,p.y);renderHQEditor();});
+hqCanvas.addEventListener('pointerup',e=>{hqEditor.painting=false;hqCanvas.releasePointerCapture?.(e.pointerId);renderHQEditor();});
+hqCanvas.addEventListener('pointercancel',()=>{hqEditor.painting=false;});
+
 // スプライトシートから4方向の基準画像を選ぶ
 $('#spriteSheetInput').onchange=e=>{
   loadSpriteSheetFile(e.target.files?.[0]);
   e.target.value='';
 };
-$('#spriteZoom').onchange=e=>{
-  spritePicker.zoom=Number(e.target.value)||2;
-  drawSpriteSheet();
-};
+$('#spriteZoom').onchange=e=>applySpriteZoom(e.target.value);
+$('#zoomFit').onclick=()=>applySpriteZoom('fit');
+$('#zoomHalf').onclick=()=>applySpriteZoom('0.5');
+$('#zoomOne').onclick=()=>applySpriteZoom('1');
+document.querySelectorAll('[data-nav-mode]').forEach(b=>{
+  b.onclick=()=>setInteractionMode(b.dataset.navMode);
+});
 document.querySelectorAll('[data-sprite-dir]').forEach(b=>{
   b.onclick=()=>setSpriteActiveDir(b.dataset.spriteDir);
 });
@@ -1299,6 +1701,17 @@ $('#pixelGridMode').onchange=()=>{ getPixelGridMode(); drawSpriteSheet(); };
 ['bulkCount','bulkAxis'].forEach(id=>{
   $('#'+id).onchange=()=>{ getBulkConfig(); };
 });
+
+const spriteScroll=$('#spriteScroll');
+$('#spriteScrollX').oninput=e=>{
+  spriteScroll.scrollLeft=Number(e.target.value)||0;
+  updateSpriteScrollControls();
+};
+$('#spriteScrollY').oninput=e=>{
+  spriteScroll.scrollTop=Number(e.target.value)||0;
+  updateSpriteScrollControls();
+};
+spriteScroll.addEventListener('scroll',updateSpriteScrollControls,{passive:true});
 
 document.querySelectorAll('[data-nudge]').forEach(b=>{
   b.onclick=()=>{
@@ -1323,6 +1736,18 @@ spriteCanvas.addEventListener('pointerdown',e=>{
   if(!spritePicker.image) return;
   e.preventDefault();
   spriteCanvas.setPointerCapture?.(e.pointerId);
+
+  if(spritePicker.interactionMode==='pan'){
+    spritePicker.pan={
+      pointerId:e.pointerId,
+      startClientX:e.clientX,
+      startClientY:e.clientY,
+      startLeft:spriteScroll.scrollLeft,
+      startTop:spriteScroll.scrollTop
+    };
+    return;
+  }
+
   const p=pointOnSpriteCanvas(e);
   spritePicker.dragging=true;
   spritePicker.dragStart=p;
@@ -1330,6 +1755,16 @@ spriteCanvas.addEventListener('pointerdown',e=>{
   drawSpriteSheet();
 });
 spriteCanvas.addEventListener('pointermove',e=>{
+  if(spritePicker.interactionMode==='pan' && spritePicker.pan){
+    e.preventDefault();
+    const dx=e.clientX-spritePicker.pan.startClientX;
+    const dy=e.clientY-spritePicker.pan.startClientY;
+    spriteScroll.scrollLeft=spritePicker.pan.startLeft-dx;
+    spriteScroll.scrollTop=spritePicker.pan.startTop-dy;
+    updateSpriteScrollControls();
+    return;
+  }
+
   if(!spritePicker.dragging) return;
   e.preventDefault();
   spritePicker.dragCurrent=pointOnSpriteCanvas(e);
@@ -1338,6 +1773,11 @@ spriteCanvas.addEventListener('pointermove',e=>{
   drawSpriteSheet();
 });
 async function finishSpriteDrag(e){
+  if(spritePicker.interactionMode==='pan'){
+    spritePicker.pan=null;
+    updateSpriteScrollControls();
+    return;
+  }
   if(!spritePicker.dragging) return;
   e.preventDefault();
   spritePicker.dragCurrent=pointOnSpriteCanvas(e);
@@ -1348,7 +1788,12 @@ async function finishSpriteDrag(e){
   await registerSpriteSelection(sel,'drag');
 }
 spriteCanvas.addEventListener('pointerup',finishSpriteDrag);
-spriteCanvas.addEventListener('pointercancel',()=>{spritePicker.dragging=false;drawSpriteSheet();});
+spriteCanvas.addEventListener('pointercancel',()=>{
+  spritePicker.dragging=false;
+  spritePicker.pan=null;
+  drawSpriteSheet();
+  updateSpriteScrollControls();
+});
 
 ['cropX','cropY','cropW','cropH'].forEach(id=>{
   $('#'+id).onchange=()=>{
@@ -1366,6 +1811,11 @@ updatePixelGridStatus();
 updateSpriteCounts();
 setSpriteActiveDir('front');
 setSpriteMode('idle');
+setInteractionMode('select');
+updateSpriteScrollControls();
+window.addEventListener('resize',updateFitZoomOnResize,{passive:true});
+syncHQControls();
+setHQDir('front');
 syncSpeedUI(durationEl.value);
 
 })();
